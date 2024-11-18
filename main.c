@@ -1,5 +1,5 @@
 //#include "device.h"
-//永磁同步电机控制
+//永磁同步电机控制  200W发电机
 #include "F28x_Project.h"
 #include<stdlib.h>
 #include "interrupt.h"
@@ -19,10 +19,10 @@
 #include "F2837xD_Examples.h"
 #include "bsp_I2C.h"
 
-#define PI              3.14159265f
-#define ld     131e-6
+#define PI     3.14159265f
+#define ld     103.85e-6
 //#define lq      61e-6   表贴式Ld=Lq
-#define lq     131e-6
+#define lq     95.78e-6
 /**
  * main.c
  */
@@ -82,15 +82,15 @@ float32 Cos_the=0;
 //内环
 PID_CTRL current_pid_d;/* 电流控制 */
 PID_CTRL current_pid_q;
-float Id_pid_kp=ld*44879;//
-float Iq_pid_kp=lq*44879;//
-float Id_pid_ki=0.001;//0.0001
-float Iq_pid_ki=0.001;//0.0001
+float Id_pid_kp=ld*5543.22;//
+float Iq_pid_kp=lq*5543.22;//
+float Id_pid_ki=0.002342;//0.0001
+float Iq_pid_ki=0.002342;//0.0001
 float current_out_limit=350;//内环电流限幅
 //外环,转速环
 PID_CTRL speed_pid;/* 转速控制 */
-float speed_pid_kp=0.008;//0.004 0.008
-float speed_pid_ki=0.00001;//0.001
+float speed_pid_kp=0.035;//0.004 0.008
+float speed_pid_ki=0.0000875;//0.001
 float speed_out_limit=6;//转速环限幅
 
 //直流电流环
@@ -106,9 +106,9 @@ float speed_ref=0;   //转速参考
 float speed_ref_ctr=0;
 float32 speed_normK=300;//调制前归一化系数
 //电机参数
-float32 Ld=131e-6;
-float32 Lq=131e-6;
-float32 Rs=0.435;//定子电阻
+float32 Ld=103.85e-6;
+float32 Lq=95.78e-6;
+float32 Rs=0.0845;//定子电阻
 float Pn=5;   //极对数
 float32 flux=0.0057135;//磁链 flux=0.0057135
 float32 Kt=0.042851;//转矩常数，Te=Kt*iq。
@@ -236,7 +236,7 @@ int main(void)
     speed_pid.Imin=-speed_out_limit;
     //电流内环参数
 	bsp_pid_init(&current_pid_d);
-	current_pid_d.Kp=Ld*44879;
+	current_pid_d.Kp=Ld*5543.22;
 	current_pid_d.Ki=Id_pid_ki;
 	current_pid_d.PIDmax=current_out_limit;
 	current_pid_d.PIDmin=-current_out_limit;
@@ -244,7 +244,7 @@ int main(void)
 	current_pid_d.Imin=-current_out_limit;
 
     bsp_pid_init(&current_pid_q);
-    current_pid_q.Kp=Lq*44879;
+    current_pid_q.Kp=Lq*5543.22;
     current_pid_q.Ki=Iq_pid_ki;
     current_pid_q.PIDmax=current_out_limit;
     current_pid_q.PIDmin=-current_out_limit;
