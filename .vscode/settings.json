@@ -1,0 +1,18 @@
+{
+    "files.associations": {
+        "diskio.h": "c",
+        "f28x_project.h": "c",
+        "f2837xd_device.h": "c",
+        "f2837xd_gpio.h": "c",
+        "f2837xd_examples.h": "c",
+        "f2837xd_gpio_defines.h": "c",
+        "f2837xd_emif.h": "c",
+        "bsp_btn.h": "c",
+        "can.h": "c",
+        "bsp_can.h": "c",
+        "bsp_timer.h": "c",
+        "bsp_adc.h": "c",
+        "bsp_led.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}
