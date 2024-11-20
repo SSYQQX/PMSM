@@ -37,7 +37,7 @@ Uint16 Bus_Voltage_AD=0;
 Uint16 Bus_Current_AD=0;
 Uint16 Supercapacitor_Voltage_AD=0;
 
-float32 K_norm=0.1;
+float32 K_norm=0.05;
 
 
 float32 Ua_Voltage=0;
@@ -84,14 +84,14 @@ PID_CTRL current_pid_d;/* 电流控制 */
 PID_CTRL current_pid_q;
 float Id_pid_kp=ld*5543.22;//
 float Iq_pid_kp=lq*5543.22;//
-float Id_pid_ki=0.002342;//0.0001
-float Iq_pid_ki=0.002342;//0.0001
+float Id_pid_ki=0.0002342;//0.0001
+float Iq_pid_ki=0.0002342;//0.0001
 float current_out_limit=350;//内环电流限幅
 //外环,转速环
 PID_CTRL speed_pid;/* 转速控制 */
 float speed_pid_kp=0.035;//0.004 0.008
 float speed_pid_ki=0.0000875;//0.001
-float speed_out_limit=6;//转速环限幅
+float speed_out_limit=15;//转速环输出限幅
 
 //直流电流环
 PID_CTRL currentDC_pid;
@@ -186,11 +186,13 @@ int TZ_flag=3;
 int TZ=0;
 /////////////////I2C////////////////////
 __interrupt void i2c_int1a_isr(void);
-int COM_flag=200;//读写设备号
+int COM_flag=100;//读写设备号
 int COM_Allow=0;
 int I2C_ERROR_FLAG=0;//I2C故障标志
 
 int zl_flag=0;
+int gd_f=0;
+int gd_count=1500;
 int main(void)
 {
 
@@ -350,7 +352,7 @@ int main(void)
             RELAY2_flag_last=RELAY2_flag;
             DELAY_US(2000*1000);//2s
             GPIO_WritePin(12, 0);//PWM输出使能，0开1关  开PWM
-            DELAY_US(2000*1000);//2s
+            DELAY_US(4000*1000);//2s
             on_flag++;
             }
             else
@@ -411,39 +413,42 @@ int main(void)
 
 __interrupt void adca1_isr(void)
 {
-//
-//    if(state_flag==1)//开启状态
-//    {
-//        if(zl_flag<20)//检测到转矩电流，开机
-//          {
-//            //zl_flag++;
-//            if(Iq_Current>1.0) zl_flag++;
-//            else zl_flag=0;
-//
-//            if(zl_flag==20)
-//            {
-//            speed_ref_ctr=1000;//给定转速
-//            }
-//          }
-//        if(zl_flag>=20&&speed_ref_ctr>900)//检测到电流连续小于0 100次，则关断
-//        {
-//            if(Iq_Current<0) zl_flag++;
-//            else zl_flag=20;
-//
-//            if(zl_flag==200)
-//            {
-//          if(abs(speed_ref_ctr+motor.Speed_N)<50)//处于稳态时
-//            speed_ref_ctr=0;//给定转速
-//            zl_flag=20;
-//            }
-//        }
-//
-//        if(motor.Speed_N==0&&Iq_Current<0) //如果转速过低，电流为转动，则置为初始状态
-//        {
-//           // GPIO_WritePin(12, 1);//关
-//            zl_flag=0;
-//        }
-//    }
+
+    if(state_flag==1)//开启状态
+    {
+        if(speed_ref_ctr==0&&zl_flag<100)//检测到转矩电流，开机
+          {
+            //zl_flag++;
+            if(Iq_Current>1.5) zl_flag++;
+            else zl_flag=0;
+
+            if(zl_flag==100)
+            {
+            speed_ref_ctr=1000;//给定转速
+            }
+          }
+        //zl_flag>=20&&
+        if((motor.Speed_N<-900) && (speed_ref_ctr>900))//检测到电流连续小于0达gd_count次，则关断
+        {
+            if(Iq_Current<0) zl_flag++;
+            else zl_flag=100;
+
+            if(zl_flag==gd_count)
+            {
+              if(abs(speed_ref_ctr+motor.Speed_N)<50)//处于稳态时
+                speed_ref_ctr=0;//给定转速
+                zl_flag=100;
+                gd_f++;//记录关断次数
+            }
+        }
+
+        if(motor.Speed_N==0&&Iq_Current<0) //如果转速过低，电流为转动，则置为初始状态
+        {
+           // GPIO_WritePin(12, 1);//关
+            speed_ref_ctr=0;//给定转速
+            zl_flag=0;
+        }
+    }
     //电流采样
     APhase_Current=AdcaResultRegs.ADCRESULT0;//y = 0.015x - 31.077
     BPhase_Current=AdcbResultRegs.ADCRESULT0;//y = 0.0146x - 30.119
@@ -491,8 +496,9 @@ __interrupt void adca1_isr(void)
     //判断给定指令是否正确
     if(speed_ref_ctr>=0.0&&speed_ref_ctr<=3000.0)
     {
-        if(speed_ref_ctr>speed_ref) speed_ref++;
-        else  speed_ref=(float)speed_ref_ctr;
+//        if(speed_ref_ctr>speed_ref) speed_ref++;
+//        else  speed_ref=(float)speed_ref_ctr;
+        speed_ref=(float)speed_ref_ctr;
     }
     else
     {speed_ref_ctr=(float)speed_ref;
