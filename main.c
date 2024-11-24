@@ -316,6 +316,7 @@ int main(void)
 	        GPIO_WritePin(12, 1);//PWM输出使能，0开1关
 
 	        state_flag=0;//置状态为关。
+	        LED3_OFF();//指示灯灭
 	    }
 
         if(Turn_on_off==1&&state_flag==0)//上电
@@ -333,12 +334,12 @@ int main(void)
 
             zhuanziDw_flag=1;//使能转子定位
             PID_Parameter_Init();//pid参数置零，初始化
-            DELAY_US(2000*1000);//2s
+            DELAY_US(10*1000);//10ms
             GPIO_WritePin(12, 0);//PWM输出使能，0开1关  开PWM
-            DELAY_US(2000*1000);//2s
+            DELAY_US(1000*1000);//1s
             zhuanziDw_flag=0;//关闭转子定位
 
-            DELAY_US(2000*1000);//2s
+            DELAY_US(2000*1000);//2s,等待直流电容充电。
             on_flag++;
             }
             else
@@ -358,6 +359,8 @@ int main(void)
                     on_flag=0;//开启成功
                     while(motor.Speed_N!=0);
                     state_flag=1;//置状态为开。
+
+                    LED3_ON();//指示灯亮
                     }
             }
         }
@@ -580,98 +583,58 @@ __interrupt void adca1_isr(void)
     if(Iq_out_norm>1)Iq_out_norm=1;
     if(Iq_out_norm<-1)Iq_out_norm=-1;
 
-//    //转子定位
-//    if(zhuanziDw_flag==1)
-//    {
-//      Id_out_norm=0.05;
-//      Iq_out_norm=0;
-//      Sin_the=0;
-//      Cos_the=1;
-//      motor.theta_elec=0;//电角度置零
-//      motor.mech_position=0;//机械角度归零
-//      EQep1Regs.QPOSCNT=0;//编码器归零
-//    }
-
-    //dq--abc
-    dq0_abc1_cur.d =Id_out_norm;
-    dq0_abc1_cur.q =Iq_out_norm;
-    dq0_abc1_cur.z =0;
-    dq0_abc1_cur.sin =Sin_the;
-    dq0_abc1_cur.cos =Cos_the;
-    DQ0_ABC_F_FUNC(&dq0_abc1_cur);
-
-    Varef=dq0_abc1_cur.a;
-    if(Varef>1)Varef=1;
-    if(Varef<-1)Varef=-1;
-
-    Vbref=dq0_abc1_cur.b;
-    if(Vbref>1)Vbref=1;
-    if(Vbref<-1)Vbref=-1;
-
-    Vcref=dq0_abc1_cur.c;
-    if(Vcref>1)Vcref=1;
-    if(Vcref<-1)Vcref=-1;
+//    //dq--abc
+//    dq0_abc1_cur.d =Id_out_norm;
+//    dq0_abc1_cur.q =Iq_out_norm;
+//    dq0_abc1_cur.z =0;
+//    dq0_abc1_cur.sin =Sin_the;
+//    dq0_abc1_cur.cos =Cos_the;
+//    DQ0_ABC_F_FUNC(&dq0_abc1_cur);
 //
-    EPwm1Regs.CMPA.bit.CMPA =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
-    EPwm1Regs.CMPB.bit.CMPB =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
-    EPwm2Regs.CMPA.bit.CMPA =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
-    EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
-    EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
-    EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
+//    Varef=dq0_abc1_cur.a;
+//    if(Varef>1)Varef=1;
+//    if(Varef<-1)Varef=-1;
+//
+//    Vbref=dq0_abc1_cur.b;
+//    if(Vbref>1)Vbref=1;
+//    if(Vbref<-1)Vbref=-1;
+//
+//    Vcref=dq0_abc1_cur.c;
+//    if(Vcref>1)Vcref=1;
+//    if(Vcref<-1)Vcref=-1;
+////
+//    EPwm1Regs.CMPA.bit.CMPA =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
+//    EPwm1Regs.CMPB.bit.CMPB =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
+//    EPwm2Regs.CMPA.bit.CMPA =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
+//    EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
+//    EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
+//    EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
 
     }
 
     //进行转子定位
     if(zhuanziDw_flag==1&&state_flag==0)
     {
-      Id_out_norm=0.1;
+      Id_out_norm=0.1;//d轴给定一个电压吸附转子的d轴
       Iq_out_norm=0;
       Sin_the=0;
       Cos_the=1;
       motor.theta_elec=0;//电角度置零
       motor.mech_position=0;//机械角度归零
       EQep1Regs.QPOSCNT=0;//编码器归零
-
-
-    //dq--abc
-    dq0_abc1_cur.d =Id_out_norm;
-    dq0_abc1_cur.q =Iq_out_norm;
-    dq0_abc1_cur.z =0;
-    dq0_abc1_cur.sin =Sin_the;
-    dq0_abc1_cur.cos =Cos_the;
-    DQ0_ABC_F_FUNC(&dq0_abc1_cur);
-
-    Varef=dq0_abc1_cur.a;
-    if(Varef>1)Varef=1;
-    if(Varef<-1)Varef=-1;
-
-    Vbref=dq0_abc1_cur.b;
-    if(Vbref>1)Vbref=1;
-    if(Vbref<-1)Vbref=-1;
-
-    Vcref=dq0_abc1_cur.c;
-    if(Vcref>1)Vcref=1;
-    if(Vcref<-1)Vcref=-1;
-//
-    EPwm1Regs.CMPA.bit.CMPA =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
-    EPwm1Regs.CMPB.bit.CMPB =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
-    EPwm2Regs.CMPA.bit.CMPA =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
-    EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
-    EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
-    EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
 
     }
     //结束转子定位
     if(zhuanziDw_flag==0&&state_flag==0)
     {
-      Id_out_norm=0;
+      Id_out_norm=0;//给定置零
       Iq_out_norm=0;
       Sin_the=0;
       Cos_the=1;
       motor.theta_elec=0;//电角度置零
       motor.mech_position=0;//机械角度归零
       EQep1Regs.QPOSCNT=0;//编码器归零
-
+    }
 
     //dq--abc
     dq0_abc1_cur.d =Id_out_norm;
@@ -699,26 +662,6 @@ __interrupt void adca1_isr(void)
     EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
     EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
     EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
-
-    }
-
-//        if(flag<1000)
-//        {
-//        Vac[flag]= motor.theta_elec;
-////        iSin[flag]= motor.theta_elec;
-////          Vac[flag]=theta;
-////          iSin[flag]=spll3.theta;
-////       iSin[flag]=Id_Current;
-////                      Vac[flag]=Ua_Voltage;
-////                      iSin[flag]=Ub_Voltage;
-//        flag++;
-//
-//        }
-//        else
-//        {
-//            flag=0;
-//
-//        }
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1; //clear INT1 flag
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
@@ -756,7 +699,7 @@ __interrupt void INTERRUPT_ISR_TZProtect(void)
 {
    // LED3_TOGGLE();
     TZ++;
-    LED3_ON();
+ //   LED3_ON();
 //    EALLOW;
 ////    EPwm1Regs.TZCLR.bit.OST=1;      //for tz trip One-shot Flag clear;
 //    EPwm1Regs.TZCLR.bit.INT = 1;    //clear INT flag
