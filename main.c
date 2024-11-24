@@ -63,6 +63,7 @@ float32 Supercapacitor_Voltage=0;
 //系统上电、下电控制
 int Turn_on_off=0;
 int state_flag=0;
+int zhuanziDw_flag=0;//转子定位标志 =1需要进行定位。=0不需要
 
 int RELAY2_flag=0;//继电器使能
 int RELAY1_flag=0;
@@ -146,6 +147,7 @@ ABC_DQ0_POS_F abc_dq0_pos1_cur;
 
 DQ0_ABC_F dq0_abc1_cur;
 
+void PID_Parameter_Init(void);
 
 __interrupt void myEQEP1_ISR(void);
 void Init_Variables(void);
@@ -228,30 +230,8 @@ int main(void)
 	//bsp_emif_init();
 	//按键
 	key_Init();
-	//转速外环参数
-    bsp_pid_init(&speed_pid);
-    speed_pid.Kp=speed_pid_kp;
-    speed_pid.Ki=speed_pid_ki;
-    speed_pid.PIDmax=speed_out_limit;
-    speed_pid.PIDmin=-speed_out_limit;
-    speed_pid.Imax=speed_out_limit;
-    speed_pid.Imin=-speed_out_limit;
-    //电流内环参数
-	bsp_pid_init(&current_pid_d);
-	current_pid_d.Kp=Ld*5543.22;
-	current_pid_d.Ki=Id_pid_ki;
-	current_pid_d.PIDmax=current_out_limit;
-	current_pid_d.PIDmin=-current_out_limit;
-	current_pid_d.Imax=current_out_limit;
-	current_pid_d.Imin=-current_out_limit;
-
-    bsp_pid_init(&current_pid_q);
-    current_pid_q.Kp=Lq*5543.22;
-    current_pid_q.Ki=Iq_pid_ki;
-    current_pid_q.PIDmax=current_out_limit;
-    current_pid_q.PIDmin=-current_out_limit;
-    current_pid_q.Imax=current_out_limit;
-    current_pid_q.Imin=-current_out_limit;
+	//pid参数初始化
+	PID_Parameter_Init();
 ///////ADC
 	bsp_adc_init();//adc中断配置在其中
 ///////////PWM
@@ -350,9 +330,15 @@ int main(void)
             RELAY_2_ON();//开继电器2，预充电
             RELAY2_flag=1;
             RELAY2_flag_last=RELAY2_flag;
+
+            zhuanziDw_flag=1;//使能转子定位
+            PID_Parameter_Init();//pid参数置零，初始化
             DELAY_US(2000*1000);//2s
             GPIO_WritePin(12, 0);//PWM输出使能，0开1关  开PWM
-            DELAY_US(4000*1000);//2s
+            DELAY_US(2000*1000);//2s
+            zhuanziDw_flag=0;//关闭转子定位
+
+            DELAY_US(2000*1000);//2s
             on_flag++;
             }
             else
@@ -410,45 +396,73 @@ int main(void)
 	}
 }
 
+void PID_Parameter_Init(void)
+{
+    //转速外环参数
+      bsp_pid_init(&speed_pid);
+      speed_pid.Kp=speed_pid_kp;
+      speed_pid.Ki=speed_pid_ki;
+      speed_pid.PIDmax=speed_out_limit;
+      speed_pid.PIDmin=-speed_out_limit;
+      speed_pid.Imax=speed_out_limit;
+      speed_pid.Imin=-speed_out_limit;
+      //电流内环参数
+      bsp_pid_init(&current_pid_d);
+      current_pid_d.Kp=Ld*5543.22;
+      current_pid_d.Ki=Id_pid_ki;
+      current_pid_d.PIDmax=current_out_limit;
+      current_pid_d.PIDmin=-current_out_limit;
+      current_pid_d.Imax=current_out_limit;
+      current_pid_d.Imin=-current_out_limit;
+
+      bsp_pid_init(&current_pid_q);
+      current_pid_q.Kp=Lq*5543.22;
+      current_pid_q.Ki=Iq_pid_ki;
+      current_pid_q.PIDmax=current_out_limit;
+      current_pid_q.PIDmin=-current_out_limit;
+      current_pid_q.Imax=current_out_limit;
+      current_pid_q.Imin=-current_out_limit;
+}
+
 
 __interrupt void adca1_isr(void)
 {
 
     if(state_flag==1)//开启状态
     {
-        if(speed_ref_ctr==0&&zl_flag<100)//检测到转矩电流，开机
-          {
-            //zl_flag++;
-            if(Iq_Current>1.5) zl_flag++;
-            else zl_flag=0;
+//        if(speed_ref_ctr==0&&zl_flag<100)//检测到转矩电流，开机
+//          {
+//            //zl_flag++;
+//            if(Iq_Current>1.5) zl_flag++;
+//            else zl_flag=0;
+//
+//            if(zl_flag==100)
+//            {
+//            speed_ref_ctr=1000;//给定转速
+//            }
+//          }
+//        //zl_flag>=20&&
+//        if((motor.Speed_N<-900) && (speed_ref_ctr>900))//检测到电流连续小于0达gd_count次，则关断
+//        {
+//            if(Iq_Current<0) zl_flag++;
+//            else zl_flag=100;
+//
+//            if(zl_flag==gd_count)
+//            {
+//              if(abs(speed_ref_ctr+motor.Speed_N)<50)//处于稳态时
+//                speed_ref_ctr=0;//给定转速
+//                zl_flag=100;
+//                gd_f++;//记录关断次数
+//            }
+//        }
+//
+//        if(motor.Speed_N==0&&Iq_Current<0) //如果转速过低，电流为转动，则置为初始状态
+//        {
+//           // GPIO_WritePin(12, 1);//关
+//            speed_ref_ctr=0;//给定转速
+//            zl_flag=0;
+//        }
 
-            if(zl_flag==100)
-            {
-            speed_ref_ctr=1000;//给定转速
-            }
-          }
-        //zl_flag>=20&&
-        if((motor.Speed_N<-900) && (speed_ref_ctr>900))//检测到电流连续小于0达gd_count次，则关断
-        {
-            if(Iq_Current<0) zl_flag++;
-            else zl_flag=100;
-
-            if(zl_flag==gd_count)
-            {
-              if(abs(speed_ref_ctr+motor.Speed_N)<50)//处于稳态时
-                speed_ref_ctr=0;//给定转速
-                zl_flag=100;
-                gd_f++;//记录关断次数
-            }
-        }
-
-        if(motor.Speed_N==0&&Iq_Current<0) //如果转速过低，电流为转动，则置为初始状态
-        {
-           // GPIO_WritePin(12, 1);//关
-            speed_ref_ctr=0;//给定转速
-            zl_flag=0;
-        }
-    }
     //电流采样
     APhase_Current=AdcaResultRegs.ADCRESULT0;//y = 0.015x - 31.077
     BPhase_Current=AdcbResultRegs.ADCRESULT0;//y = 0.0146x - 30.119
@@ -566,6 +580,18 @@ __interrupt void adca1_isr(void)
     if(Iq_out_norm>1)Iq_out_norm=1;
     if(Iq_out_norm<-1)Iq_out_norm=-1;
 
+//    //转子定位
+//    if(zhuanziDw_flag==1)
+//    {
+//      Id_out_norm=0.05;
+//      Iq_out_norm=0;
+//      Sin_the=0;
+//      Cos_the=1;
+//      motor.theta_elec=0;//电角度置零
+//      motor.mech_position=0;//机械角度归零
+//      EQep1Regs.QPOSCNT=0;//编码器归零
+//    }
+
     //dq--abc
     dq0_abc1_cur.d =Id_out_norm;
     dq0_abc1_cur.q =Iq_out_norm;
@@ -593,6 +619,88 @@ __interrupt void adca1_isr(void)
     EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
     EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
 
+    }
+
+    //进行转子定位
+    if(zhuanziDw_flag==1&&state_flag==0)
+    {
+      Id_out_norm=0.1;
+      Iq_out_norm=0;
+      Sin_the=0;
+      Cos_the=1;
+      motor.theta_elec=0;//电角度置零
+      motor.mech_position=0;//机械角度归零
+      EQep1Regs.QPOSCNT=0;//编码器归零
+
+
+    //dq--abc
+    dq0_abc1_cur.d =Id_out_norm;
+    dq0_abc1_cur.q =Iq_out_norm;
+    dq0_abc1_cur.z =0;
+    dq0_abc1_cur.sin =Sin_the;
+    dq0_abc1_cur.cos =Cos_the;
+    DQ0_ABC_F_FUNC(&dq0_abc1_cur);
+
+    Varef=dq0_abc1_cur.a;
+    if(Varef>1)Varef=1;
+    if(Varef<-1)Varef=-1;
+
+    Vbref=dq0_abc1_cur.b;
+    if(Vbref>1)Vbref=1;
+    if(Vbref<-1)Vbref=-1;
+
+    Vcref=dq0_abc1_cur.c;
+    if(Vcref>1)Vcref=1;
+    if(Vcref<-1)Vcref=-1;
+//
+    EPwm1Regs.CMPA.bit.CMPA =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
+    EPwm1Regs.CMPB.bit.CMPB =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
+    EPwm2Regs.CMPA.bit.CMPA =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
+    EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
+    EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
+    EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
+
+    }
+    //结束转子定位
+    if(zhuanziDw_flag==0&&state_flag==0)
+    {
+      Id_out_norm=0;
+      Iq_out_norm=0;
+      Sin_the=0;
+      Cos_the=1;
+      motor.theta_elec=0;//电角度置零
+      motor.mech_position=0;//机械角度归零
+      EQep1Regs.QPOSCNT=0;//编码器归零
+
+
+    //dq--abc
+    dq0_abc1_cur.d =Id_out_norm;
+    dq0_abc1_cur.q =Iq_out_norm;
+    dq0_abc1_cur.z =0;
+    dq0_abc1_cur.sin =Sin_the;
+    dq0_abc1_cur.cos =Cos_the;
+    DQ0_ABC_F_FUNC(&dq0_abc1_cur);
+
+    Varef=dq0_abc1_cur.a;
+    if(Varef>1)Varef=1;
+    if(Varef<-1)Varef=-1;
+
+    Vbref=dq0_abc1_cur.b;
+    if(Vbref>1)Vbref=1;
+    if(Vbref<-1)Vbref=-1;
+
+    Vcref=dq0_abc1_cur.c;
+    if(Vcref>1)Vcref=1;
+    if(Vcref<-1)Vcref=-1;
+//
+    EPwm1Regs.CMPA.bit.CMPA =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
+    EPwm1Regs.CMPB.bit.CMPB =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
+    EPwm2Regs.CMPA.bit.CMPA =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
+    EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
+    EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
+    EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
+
+    }
 
 //        if(flag<1000)
 //        {
@@ -869,7 +977,7 @@ void key_Init(void)
 
 }
 
-interrupt void xint1_isr(void)///KEY1
+interrupt void xint1_isr(void)///KEY1 关
 {
 //    GpioDataRegs.GPBCLEAR.all = 0x4;   // GPIO34 is low
 //    Xint1Count++;
@@ -885,6 +993,10 @@ interrupt void xint1_isr(void)///KEY1
             while(GpioDataRegs.GPADAT.bit.GPIO26==1);
 
             Turn_on_off=0;//电容断开
+
+            RELAY_1_OFF();//关继电器1
+            DELAY_US(1*1000);//1ms
+            RELAY_2_OFF();//关继电器2
         }
 
     }
@@ -895,7 +1007,7 @@ interrupt void xint1_isr(void)///KEY1
 //
 // xint2_isr - External Interrupt 2 ISR
 //
-interrupt void xint2_isr(void)///KEY2
+interrupt void xint2_isr(void)///KEY2 开
 {
 
     if(GpioDataRegs.GPADAT.bit.GPIO27==1)
