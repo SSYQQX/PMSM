@@ -87,10 +87,10 @@ float Id_pid_kp=ld*5543.22;//
 float Iq_pid_kp=lq*5543.22;//
 float Id_pid_ki=0.0002342;//0.0001
 float Iq_pid_ki=0.0002342;//0.0001
-float current_out_limit=350;//内环电流限幅
+float current_out_limit=150;//内环电流PID输出限幅
 //外环,转速环
 PID_CTRL speed_pid;/* 转速控制 */
-float speed_pid_kp=0.035;//0.004 0.008
+float speed_pid_kp=0.035;//0.035
 float speed_pid_ki=0.0000875;//0.001
 float speed_out_limit=15;//转速环输出限幅
 
@@ -105,7 +105,7 @@ float currentDC_ref_ctr=2.5;
 //给定
 float speed_ref=0;   //转速参考
 float speed_ref_ctr=0;
-float32 speed_normK=300;//调制前归一化系数
+float32 speed_normK=150;//调制前归一化系数
 //电机参数
 float32 Ld=103.85e-6;
 float32 Lq=95.78e-6;
@@ -180,7 +180,7 @@ struct Motor_Para
     float32 w_elec;//电角速度
     int pole_pairs;//极对数
 } motor;
-float32 SPEED_cal_K=0.0001*100*60;//转速计算系数=1/10000*编码器采样频率*60秒。
+float32 SPEED_cal_K=0.0001*1000*60;//转速计算系数=1/10000*编码器采样频率*60秒。
 
 void key_Init(void);//按键中断初始化。
 
@@ -714,6 +714,7 @@ void POSSPEED_Calc()
     // QPOSCNT
      motor.mech_position=EQep1Regs.QPOSCNT;//读取当前位置
      motor.DirectionQep=EQep1Regs.QEPSTS.bit.QDF;//旋转方向
+     //机械角度与电角度采样频率与控制频率相同，20K
      motor.theta_mech=motor.mech_position*motor.mech_scaler*2*PI;//机械角度
      motor.theta_elec=motor.theta_mech*motor.pole_pairs;//旋转角度，即电角度
 
@@ -726,6 +727,7 @@ void POSSPEED_Calc()
      //   p->index_sync_flag = 0x00F0;
         EQep1Regs.QCLR.bit.IEL = 1;    // Clear __interrupt flag
      }
+     //转速采样频率为100Hz
      //高速计算
      //单位计时器中断
      if(EQep1Regs.QFLG.bit.UTO == 1)
@@ -846,7 +848,7 @@ void Init_EQEP1()
     //QEP捕捉锁存模式设置为单位时间事件发生时将QPOSCNT的值锁存到QPOSLAT中
     EQep1Regs.QEPCTL.bit.QCLM=1;
     //配置UTE单元时间、中断使能、使能
-    EQep1Regs.QUPRD=2000000; //分频数。当SYSCLKOUT=200MHz时，2e6设定Unit Timer溢出频率为100Hz,2e5为1000hz；
+    EQep1Regs.QUPRD=200000; //分频数。当SYSCLKOUT=200MHz时，2e6设定Unit Timer溢出频率为100Hz,2e5为1000hz；
     EQep1Regs.QEINT.bit.UTO=1;//使能UTO中断
     EQep1Regs.QEPCTL.bit.UTE=1;   //使能UTE,使能单位定时器
 //    QFRC
