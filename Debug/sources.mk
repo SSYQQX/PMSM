@@ -112,6 +112,7 @@ PDE_DEPS__QUOTED :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 . \
+BSP/485_ModobusRTU \
 BSP/ADC \
 BSP/EMIF \
 BSP/EPWM \

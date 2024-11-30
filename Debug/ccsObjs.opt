@@ -1,4 +1,5 @@
 "./main.obj"
+"./BSP/485_ModobusRTU/485_ModobusRTU.obj"
 "./BSP/ADC/bsp_adc.obj"
 "./BSP/EMIF/bsp_emif.obj"
 "./BSP/EMIF/emif_asram_pin_setup.obj"

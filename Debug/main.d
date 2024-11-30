@@ -121,6 +121,7 @@ main.obj: D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_3PH_DDSRF_
 main.obj: D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_3PH_SRF_F.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/SPLL_FLL/spll_1ph_sogi_fll.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV2/BSP/I2C/bsp_I2C.h
+main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/485_ModobusRTU/485_ModobusRTU.h
 
 ../main.c:
 
@@ -363,4 +364,6 @@ D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_3PH_SRF_F.h:
 D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/SPLL_FLL/spll_1ph_sogi_fll.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV2/BSP/I2C/bsp_I2C.h:
+
+D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/485_ModobusRTU/485_ModobusRTU.h:
 

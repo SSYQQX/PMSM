@@ -1,6 +1,8 @@
 eclipse.preferences.version=1
 encoding//BSP/I2C/bsp_I2C.c=GBK
 encoding//BSP/I2C/bsp_I2C.h=GBK
+encoding//Debug/BSP/485_ModobusRTU/subdir_rules.mk=UTF-8
+encoding//Debug/BSP/485_ModobusRTU/subdir_vars.mk=UTF-8
 encoding//Debug/BSP/ADC/subdir_rules.mk=UTF-8
 encoding//Debug/BSP/ADC/subdir_vars.mk=UTF-8
 encoding//Debug/BSP/EMIF/subdir_rules.mk=UTF-8

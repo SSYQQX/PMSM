@@ -18,6 +18,7 @@
 
 #include "F2837xD_Examples.h"
 #include "bsp_I2C.h"
+#include "485_ModobusRTU.h"
 
 #define PI     3.14159265f
 #define ld     103.85e-6
@@ -213,6 +214,9 @@ int main(void)
     //I2C初始化
     I2CB_GpioInit();//I2C io初始
     I2CB_Init();
+    //485
+    Modobus_485_GpioInit();
+    scia_fifo_init();  // 初始化SCI-A
     //编码器
      Init_Variables();
      Init_EQEP1_Gpio();
@@ -243,7 +247,14 @@ int main(void)
     EALLOW;    // This is needed to write to EALLOW protected registers
     PieVectTable.I2CB_INT = &i2c_int1a_isr;
     EDIS;      // This is needed to disable write to EALLOW protected registers
-
+    //485中断函数
+       EALLOW;  // 允许写入EALLOW保护寄存器
+       PieVectTable.SCIA_RX_INT = &sciaRxFifoIsr;  // SCI-A接收中断映射到接收ISR
+       EDIS;    // 禁用写入EALLOW保护寄存器
+    //485 启用中断
+    PieCtrlRegs.PIECTRL.bit.ENPIE = 1;   // 启用PIE模块
+    PieCtrlRegs.PIEIER9.bit.INTx1 = 1;   // PIE组9，INT1
+    IER |= M_INT9;                         // 启用CPU INT中断
     EALLOW;
 //    PieVectTable.TIMER0_INT = &cpu_timer0_isr;//地址赋值给 TIMER0_INT 中断向量
     PieVectTable.TIMER1_INT = &cpu_timer1_isr;//地址赋值给 TIMER1_INT 中断向量
@@ -384,6 +395,7 @@ int main(void)
 	//    RELAY_1_ON();
 	//    RELAY1_flag=1;
 	//}
+	    //读电池信息
 	    if(COM_Allow==2)
 	    {//读BMS信息
 	        if(I2C_ERROR_FLAG!=0)//I2C故障
@@ -394,6 +406,12 @@ int main(void)
 	        }
 
 	    Read_BMS_Information(COM_flag);
+	    }
+
+	    if(slave_addr_Rerr!=0||receive_Rerr!=0)
+	    {
+        //485通信接受错误处理，恢复
+        Modobus_485_ReceiveErr_handle();
 	    }
 
 	}
@@ -662,6 +680,9 @@ __interrupt void adca1_isr(void)
     EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
     EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
     EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
+
+    MODBUS_REG_VALUE[0]=(Uint16)(Bus_Voltage*1000);
+    MODBUS_REG_VALUE[1]=(Uint16)(Bus_Current*1000);
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1; //clear INT1 flag
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
