@@ -89,14 +89,19 @@ void modbus_process_request(void)
 
     switch(function_code)
     {
+        Uint16 reg_value_requst=0;
+        Uint16 Write_Value;
         case 0x03:  // 读取保持寄存器
             tx_buffer[0] = modbus_slave_addr; // 从机地址
             tx_buffer[1] = function_code;    // 功能码
             tx_buffer[2] = 0x02;             // 数据长度（2字节）
             //寄存器值，高位在前，低位在后
 
-            tx_buffer[3] = (MODBUS_REG_VALUE[modbus_reg_addr] >> 8) & 0xFF;  // 高字节
-            tx_buffer[4] = MODBUS_REG_VALUE[modbus_reg_addr] & 0xFF;         // 低字节
+            reg_value_requst=Read_HoldRegister(modbus_reg_addr);
+            tx_buffer[3] = (reg_value_requst >> 8) & 0xFF;  // 高字节
+            tx_buffer[4] = reg_value_requst & 0xFF;         // 低字节
+//            tx_buffer[3] = (MODBUS_REG_VALUE[modbus_reg_addr] >> 8) & 0xFF;  // 高字节
+//            tx_buffer[4] = MODBUS_REG_VALUE[modbus_reg_addr] & 0xFF;         // 低字节
             crc_cal=modbus_calculate_crc(tx_buffer, 5); // 计算CRC
             tx_buffer[5] = crc_cal&0x00FF;//低位
             tx_buffer[6] = crc_cal>>8&0x00FF;//高位
@@ -106,15 +111,18 @@ void modbus_process_request(void)
             break;
 
         case 0x06:  // 写单个保持寄存器
-            MODBUS_REG_VALUE[modbus_reg_addr] = (rx_buffer[4] << 8) | rx_buffer[5];  // 写入的数据
+            Write_Value = (rx_buffer[4] << 8) | (rx_buffer[5] & 0x00FF);  // 写入的数据
             tx_buffer[0] = modbus_slave_addr; // 从机地址
             tx_buffer[1] = function_code;    // 功能码
             //寄存器地址占两字节，高位在前，低位在后
             tx_buffer[2] = rx_buffer[2];  // 写入的寄存器地址高字节
             tx_buffer[3] = rx_buffer[3];         // 写入的寄存器地址低字节
             //寄存器值，大端在前，小端在后
-            tx_buffer[4] = (MODBUS_REG_VALUE[modbus_reg_addr] >> 8) & 0xFF;   // 写入的寄存器值高字节
-            tx_buffer[5] = MODBUS_REG_VALUE[modbus_reg_addr] & 0xFF;          // 写入的寄存器值低字节
+            //处理写入
+            reg_value_requst=Write_HoldRegister(modbus_reg_addr,Write_Value);
+            //回读写入的数据
+            tx_buffer[4] = rx_buffer[4];   // 写入的寄存器值高字节
+            tx_buffer[5] = rx_buffer[5];          // 写入的寄存器值低字节
             crc_cal=modbus_calculate_crc(tx_buffer, 6); // 计算CRC
             //发送时，CRC小端在前，大端在后
             tx_buffer[6] = crc_cal&0x00FF;
@@ -128,9 +136,9 @@ void modbus_process_request(void)
             tx_buffer[1] = function_code;    // 功能码
             tx_buffer[2] = 0x02;             // 数据长度（2字节）
             //寄存器值，高位在前，低位在后
-
-            tx_buffer[3] = (MODBUS_REG_VALUE[modbus_reg_addr] >> 8) & 0xFF;  // 高字节
-            tx_buffer[4] = MODBUS_REG_VALUE[modbus_reg_addr] & 0xFF;         // 低字节
+            reg_value_requst=Read_InputRegister(modbus_reg_addr);
+            tx_buffer[3] = (reg_value_requst >> 8) & 0xFF;  // 高字节
+            tx_buffer[4] = reg_value_requst & 0xFF;         // 低字节
             crc_cal=modbus_calculate_crc(tx_buffer, 5); // 计算CRC
             tx_buffer[5] = crc_cal&0x00FF;//低位
             tx_buffer[6] = crc_cal>>8&0x00FF;//高位
@@ -245,4 +253,112 @@ void Modobus_485_GpioInit(void)
        GPIO_SetupPinOptions(28, GPIO_INPUT, GPIO_PUSHPULL);  // 配置为输入模式
        GPIO_SetupPinMux(29, GPIO_MUX_CPU1, 1);  // 配置GPIO29为SCI-A TX
        GPIO_SetupPinOptions(29, GPIO_OUTPUT, GPIO_ASYNC);  // 配置为输出模式
+}
+
+Uint16 Read_HoldRegister(Uint16 reg_addr)//读
+{
+    Uint16 re_value=0;
+    switch(reg_addr)
+    {
+    case 0://转速给定
+        re_value=(Uint16)speed_ref_ctr;
+        break;
+    case 2:
+        re_value=(Uint16)Turn_on_off;//上电，下电标志，直流接入控制
+        break;
+    case 4:
+        re_value=(Uint16)RELAY1_flag;
+        break;
+    case 5:
+        re_value=(Uint16)RELAY2_flag;
+        break;
+    default:
+        re_value=0;
+    }
+    return re_value;
+
+}
+Uint16 Write_HoldRegister(Uint16 reg_addr,Uint16 Wite_Value)
+{
+    Uint16 re_value=0;
+    switch(reg_addr)
+    {
+    case 0://转速给定
+        speed_ref_ctr=(float)Wite_Value;
+        break;
+    case 2:
+        Turn_on_off=(int)Wite_Value;//上电，下电标志，直流接入控制
+        break;
+    case 4:
+        RELAY1_flag=(int)Wite_Value;
+        break;
+    case 5:
+        RELAY2_flag=(int)Wite_Value;
+        break;
+    default:
+        re_value=0;
+    }
+    return re_value;
+}
+Uint16 Read_InputRegister(Uint16 reg_addr)
+{
+    Uint16 re_value=0;
+    switch(reg_addr)
+    {
+    case 1:
+        re_value=(Uint16)motorspeed_rpm;//转速反馈
+        //re_value=1000;
+        break;
+    case 3:
+        re_value=(Uint16)state_flag;//控制器状态，电机控制器状态
+        break;
+    case 6:
+        re_value=(Uint16)(Bus_Voltage*100);//母线电压
+        break;
+    case 7:
+        re_value=(Uint16)(Bus_Current*100);//母线电流
+        break;
+    case 8:
+        re_value=(Uint16)(Supercapacitor_Voltage*100);//电容电压
+        break;
+    case 9:
+        re_value=(Uint16)(int)(Id_Current*100);//D轴电流
+        break;
+    case 10:
+        re_value=(Uint16)(int)(Iq_Current*100);//Q轴电流
+        break;
+    case 11:
+        re_value=Bat_ERR_STATUS;//电池组状态
+        break;
+    case 12:
+        re_value=Bat_PACK_Voltage;//电池组电压，单位mV
+        break;
+    case 13:
+        re_value=Bat_PACK_Current;//电池组电流，单位mA
+        break;
+    case 14:
+        re_value=Bat_CELL_MaxVoltage;//电池最大电压，单位mV
+        break;
+    case 15:
+        re_value=Bat_CELL_MinVoltage;//电池最小电压，单位mV
+        break;
+    case 16:
+        re_value=Cap_ERR_STATUS;//电池组状态
+        break;
+    case 17:
+        re_value=Cap_PACK_Voltage;//电池组电压，单位mV
+        break;
+    case 18:
+        re_value=Cap_PACK_Current;//电池组电流，单位mA
+        break;
+    case 19:
+        re_value=Cap_CELL_MaxVoltage;//电池最大电压，单位mV
+        break;
+    case 20:
+        re_value=Cap_CELL_MinVoltage;//电池最小电压，单位mV
+        break;
+    default:
+        re_value=0;
+    }
+    return re_value;
 }

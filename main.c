@@ -57,13 +57,13 @@ float32 Ia_Current_norm=0;//归一化
 float32 Ib_Current_norm=0;
 float32 Ic_Current_norm=0;
 
-static float32 Bus_Voltage=0;
-static float32 Bus_Current=0;
+float32 Bus_Voltage=0;
+float32 Bus_Current=0;
 float32 Supercapacitor_Voltage=0;
 
 //系统上电、下电控制
-int Turn_on_off=0;
-int state_flag=0;
+int Turn_on_off=0;//上电，下电标志
+int state_flag=0;//控制器状态
 int zhuanziDw_flag=0;//转子定位标志 =1需要进行定位。=0不需要
 
 int RELAY2_flag=0;//继电器使能
@@ -155,11 +155,10 @@ void Init_Variables(void);
 void Init_EQEP1_Gpio(void);
 void Init_EQEP1(void);
 void POSSPEED_Calc();
-int count_flag=0;
-int speed_N[10]={0};
-int motorspeed_rpm=1200;//100Hz
-int motorspeed_rpm_last=0;
-int motorspeed_sum=0;
+
+int motorspeed_rpm=0;//
+
+
 
 
 int F_flag=0;
@@ -180,7 +179,9 @@ struct Motor_Para
     float32 theta_elec;
     float32 w_elec;//电角速度
     int pole_pairs;//极对数
-} motor;
+}motor;
+
+
 float32 SPEED_cal_K=0.0001*1000*60;//转速计算系数=1/10000*编码器采样频率*60秒。
 
 void key_Init(void);//按键中断初始化。
@@ -317,7 +318,7 @@ int main(void)
 	        RELAY_1_OFF();//关继电器1
 	        DELAY_US(10*1000);//10ms
 	        RELAY1_flag=0;
-	        RELAY1_flag_last=RELAY1_flag;
+	        RELAY1_flag_last=RELAY1_flag;//更新继电器状态
 
 	        RELAY_2_OFF();//关继电器2
 	        RELAY2_flag=0;
@@ -341,7 +342,7 @@ int main(void)
 
             RELAY_2_ON();//开继电器2，预充电
             RELAY2_flag=1;
-            RELAY2_flag_last=RELAY2_flag;
+            RELAY2_flag_last=RELAY2_flag;//更新继电器状态
 
             zhuanziDw_flag=1;//使能转子定位
             PID_Parameter_Init();//pid参数置零，初始化
@@ -362,10 +363,11 @@ int main(void)
                     RELAY_1_ON();//开继电器1
                     DELAY_US(1*1000);//1ms
                     RELAY1_flag=1;
-                    RELAY1_flag_last=RELAY1_flag;
+                    RELAY1_flag_last=RELAY1_flag;//更新继电器状态
 
                     RELAY_2_OFF();//关继电器2
                     RELAY2_flag=0;
+                    RELAY2_flag_last=RELAY2_flag;//更新继电器状态
 
                     on_flag=0;//开启成功
                     while(motor.Speed_N!=0);
@@ -387,7 +389,7 @@ int main(void)
 	    RELAY_1_ON();
 	    else
 	    RELAY_1_OFF();
-	    RELAY2_flag_last=RELAY2_flag;
+	    RELAY2_flag_last=RELAY2_flag;//更新继电器状态
 	    RELAY1_flag_last=RELAY1_flag;
 	    }
 	//if(RELAY2_flag==1&&Bus_Voltage>(Supercapacitor_Voltage-0.3))
@@ -404,7 +406,6 @@ int main(void)
 	        DELAY_US(100000);//500us
             I2cbRegs.I2CMDR.bit.IRS=1;//I2C使能
 	        }
-
 	    Read_BMS_Information(COM_flag);
 	    }
 
@@ -520,7 +521,7 @@ __interrupt void adca1_isr(void)
     abc_dq0_pos1_cur.cos = Cos_the;
     ABC_DQ0_POS_F_FUNC(&abc_dq0_pos1_cur);
 
-    Id_Current=abc_dq0_pos1_cur.d/K_norm;//与A轴重合
+    Id_Current=abc_dq0_pos1_cur.d/K_norm;//与A轴重合。反归一化
     Iq_Current=abc_dq0_pos1_cur.q/K_norm;//幅值
 
     Te=Kt*Iq_Current;//转矩计算
@@ -681,9 +682,6 @@ __interrupt void adca1_isr(void)
     EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
     EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
 
-    MODBUS_REG_VALUE[0]=(Uint16)(Bus_Voltage*1000);
-    MODBUS_REG_VALUE[1]=(Uint16)(Bus_Current*1000);
-
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1; //clear INT1 flag
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 }
@@ -696,10 +694,14 @@ __interrupt void adcd1_isr(void)
     Supercapacitor_Voltage_AD=AdcdResultRegs.ADCRESULT3;//y = 0.0083x - 0.065
 
 //    Bus_Voltage=0.0083*Bus_Voltage_AD - 0.0463;
+//    //直流母线电压
+//    Bus_Voltage=VBus_filte.alpha * Bus_Voltage + (1 - VBus_filte.alpha) *(0.0159*Bus_Voltage_AD - 0.1435);//输出直流电压，滤波后
+//    //直流电流
+//    Bus_Current=VBus_filte.alpha *Bus_Current+(1 - VBus_filte.alpha) *(0.0062*Bus_Current_AD + 0.0212);
     //直流母线电压
-    Bus_Voltage=VBus_filte.alpha * Bus_Voltage + (1 - VBus_filte.alpha) *(0.0159*Bus_Voltage_AD - 0.1435);//输出直流电压，滤波后
+    Bus_Voltage=0.0159*Bus_Voltage_AD - 0.1435;//输出直流电压
     //直流电流
-    Bus_Current=VBus_filte.alpha *Bus_Current+(1 - VBus_filte.alpha) *(0.0062*Bus_Current_AD + 0.0212);
+    Bus_Current=0.0062*Bus_Current_AD + 0.0212;
     //超级电容电压
     Supercapacitor_Voltage=0.0159*Supercapacitor_Voltage_AD - 0.1435;
 
@@ -802,6 +804,7 @@ void POSSPEED_Calc()
 //     }
 
      motor.Speed_N=motor.Speed_H;
+     motorspeed_rpm=motor.Speed_N;
      motor.w_elec=(float32)motor.Speed_N*PI*5.0/30.0;//电角速度计算
 }
 

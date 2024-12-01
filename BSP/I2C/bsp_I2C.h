@@ -9,6 +9,8 @@
 #define I2C_NUMBYTES          4  //数据字节数
 #define REG_ADDR             0x66//
 
+extern int COM_flag;//读写设备号
+
 extern struct I2CMSG I2cMsgOut1;//声名
 extern struct I2CMSG I2cMsgIn1;
 extern struct I2CMSG *CurrentMsgPtr;

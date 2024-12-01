@@ -43,6 +43,8 @@ Uint16  Stack_Voltage_mv=0;//电池组顶部电压
 Uint16  PACK_Pin_Voltage_mv=0;//PACK引脚上电压
 Uint16  CC2_Current_mA=0;//CC2 滤波器生成的电流测量值
 int16  CC2_Current_mA_Real=0;//CC2 滤波器生成的电流测量值
+Uint16 Cells_MinVoltage_mv=0;
+Uint16 Cells_MaxVoltage_mv=0;
 //温度测量值
 int16 Int_Temperature_Value=0;//内部温度  单位0.1k
 int16 TS1_Temperature_Value=0;//Ts1温度
@@ -185,6 +187,8 @@ Uint16 OTP_WRITE_Addr[2]={0xA1,0x00};//0x00A1
 Uint16 OTP_WRITE_Value=0;//写入结果
 //Uint16 Vcell_Mode[2]={0x80,0x91};//电池节数配置。写入值 0x0203.三节
 //Uint16 Vcell_Mode_value[2]={0x7A,0x30};//
+//子命令
+Uint16  Cells_MaxMinVoltage[2]={0x75,0x00};//0x0075偏移量 最大电芯电压 4 最小电芯电压 6
 //直接命令。读命令
 Uint16  Safety_Alert_A_Addr=0x02;//A类警告
 Uint16  Safety_Status_A_Addr=0x03;//A类故障
@@ -203,6 +207,7 @@ Uint16  Cell7_Voltage_Addr=0x20;//电芯7电压
 Uint16  Cell8_Voltage_Addr=0x22;//电芯8电压
 Uint16  Cell9_Voltage_Addr=0x24;//电芯9电压
 Uint16  Cell10_Voltage_Addr=0x26;//电芯10电压
+
 
 Uint16  Stack_Voltage_Addr=0x34;//电池组顶部电压
 Uint16  PACK_Pin_Voltage_Addr=0x36;//PACK引脚上电压
@@ -235,6 +240,19 @@ Uint16 SendReg_address=0;
 Uint16 Read_Data[16]={0};
 Uint16 ReadData_length=0;
 Uint16 ReadReg_address=0;
+/////////////////////////////////////////////////////////////////////////////////
+//电池组
+Uint16 Bat_ERR_STATUS=0;
+Uint16 Bat_PACK_Voltage=0;
+Uint16 Bat_PACK_Current=0;
+Uint16 Bat_CELL_MaxVoltage=0;
+Uint16 Bat_CELL_MinVoltage=0;
+//电容组
+Uint16 Cap_ERR_STATUS=0;
+Uint16 Cap_PACK_Voltage=0;
+Uint16 Cap_PACK_Current=0;
+Uint16 Cap_CELL_MaxVoltage=0;
+Uint16 Cap_CELL_MinVoltage=0;
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -680,16 +698,18 @@ int convertTwosComplementToDecimal(int twosComplement) {
 /////////////////读取警告和故障信息//////////////////////////////////
 void Read_BMS_Information(int flag)
 {
-
+//0x08:电池板  0x20：电容板
       if(flag==100)
         {
         I2cMsgOut1.SlaveAddress=0x20;//更新地址 电容板
         I2cMsgIn1.SlaveAddress=0x20;
+        COM_flag=200;//切换设备，供下一次读取
         }
         else
         {
             I2cMsgOut1.SlaveAddress=0x08;//更新地址 电池板
             I2cMsgIn1.SlaveAddress=0x08;
+            COM_flag=100;//切换设备，供下一次读取
         }
         Read_Function(Safety_Alert_A_Addr,1);//读取A类警告
         Safety_Alert_A=I2cMsgIn1.MsgBuffer[0];
@@ -697,48 +717,6 @@ void Read_BMS_Information(int flag)
         Read_Function(Safety_Status_A_Addr,1);//读取A类故障
         Safety_Status_A=I2cMsgIn1.MsgBuffer[0];
         DELAY_US(1000);//延时1ms
-//
-//        Read_Function(Safety_Alert_B_Addr,1);//读取B类警告
-//        Safety_Alert_B=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//        Read_Function(Safety_Status_B_Addr,1);//读取B类故障
-//        Safety_Status_B=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//
-//        Read_Function(Safety_Alert_C_Addr,1);//读取C类警告
-//        Safety_Alert_C=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//        Read_Function(Safety_Status_C_Addr,1);//读取C类故障
-//        Safety_Status_C=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//        //永久故障
-//        Read_Function(PF_Alert_A_Addr,1);//读取C类警告
-//        PF_Alert_A=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//        Read_Function(PF_Status_A_Addr,1);//读取C类故障
-//        PF_Status_A=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//
-//        Read_Function(PF_Alert_B_Addr,1);//读取C类警告
-//        PF_Alert_B=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//        Read_Function(PF_Status_B_Addr,1);//读取C类故障
-//        PF_Status_B=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//
-//        Read_Function(PF_Alert_C_Addr,1);//读取C类警告
-//        PF_Alert_C=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//        Read_Function(PF_Status_C_Addr,1);//读取C类故障
-//        PF_Status_C=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//
-//        Read_Function(PF_Alert_D_Addr,1);//读取C类警告
-//        PF_Alert_D=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
-//        Read_Function(PF_Status_D_Addr,1);//读取C类故障
-//        PF_Status_D=I2cMsgIn1.MsgBuffer[0];
-//        DELAY_US(1000);//延时1ms
 
     /////////////////读FET状态
         Read_Function(FET_Status_Addr,1);//读取FET状态
@@ -746,6 +724,7 @@ void Read_BMS_Information(int flag)
         DELAY_US(1000);//延时1ms
 
     ////////////读电压与电流///////////////////////////////////////////////
+
         Read_Function(Cell1_Voltage_Addr,2);
         Cell1_Voltage_mv=(I2cMsgIn1.MsgBuffer[1]<<8)+I2cMsgIn1.MsgBuffer[0];
         DELAY_US(1000);//延时1ms
@@ -799,12 +778,19 @@ void Read_BMS_Information(int flag)
         Read_Function(TS3_Temperature_Addr,2);
         TS3_Temperature_Value=convertTwosComplementToDecimal((I2cMsgIn1.MsgBuffer[1]<<8)+I2cMsgIn1.MsgBuffer[0])*0.1-273.15;
         DELAY_US(1000);//延时1ms
-    ////////////读主动均衡的电池///////////////////////////////////////////////
+    ////////////读主动均衡的电池   子命令读取///////////////////////////////////////////////
         Write_Function(0x3E,CB_ACTIVE_CELLSA_Addr,2);//
         DELAY_US(10000);//延时10ms
         Read_Function(0x40,2);
         CB_ACTIVE_CELLS=(I2cMsgIn1.MsgBuffer[1]<<8)+I2cMsgIn1.MsgBuffer[0];
+    ///////////读最大最小电压   子命令读取///////////////////////////////////////////////
+        Write_Function(0x3E,Cells_MaxMinVoltage,2);//
+        DELAY_US(10000);//延时10ms
+        Read_Function(0x40,8);//读8个字节
+        Cells_MaxVoltage_mv=(I2cMsgIn1.MsgBuffer[5]<<8)+I2cMsgIn1.MsgBuffer[4];
+        Cells_MinVoltage_mv=(I2cMsgIn1.MsgBuffer[7]<<8)+I2cMsgIn1.MsgBuffer[6];
     ////////////读电池状态///////////////////////////////////////////////
+
 //        DELAY_US(1000);//延时1ms
 //        Read_Function(Battery_Status_Addr,2);
 //        Battery_Status=(I2cMsgIn1.MsgBuffer[1]<<8)+I2cMsgIn1.MsgBuffer[0];
@@ -814,4 +800,25 @@ void Read_BMS_Information(int flag)
 //        DELAY_US(10000);//单位us。等待从机准备数据
 //        Read_Function(0x40,2);//从从机的数据缓冲区读数据
 //        FET_ControlMODE=(I2cMsgIn1.MsgBuffer[1]<<8)+I2cMsgIn1.MsgBuffer[0];
+
+        //读取的信息传递
+        //电池组
+        if(flag==100)//电容板
+        {
+            //电容组
+             Cap_ERR_STATUS=Safety_Status_A;
+             Cap_PACK_Voltage=Stack_Voltage_mv;
+             Cap_PACK_Current=CC2_Current_mA_Real;
+             Cap_CELL_MaxVoltage=Cells_MaxVoltage_mv;
+             Cap_CELL_MinVoltage=Cells_MinVoltage_mv;
+        }
+        else
+        {
+         Bat_ERR_STATUS=Safety_Status_A;
+         Bat_PACK_Voltage=Stack_Voltage_mv;
+         Bat_PACK_Current=CC2_Current_mA_Real;
+         Bat_CELL_MaxVoltage=Cells_MaxVoltage_mv;
+         Bat_CELL_MinVoltage=Cells_MinVoltage_mv;
+        }
+
 }

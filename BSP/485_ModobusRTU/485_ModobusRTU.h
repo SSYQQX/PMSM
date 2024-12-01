@@ -30,6 +30,9 @@ void scia_fifo_init(void);               // SCI-A FIFO初始化
 Uint16 modbus_calculate_crc(Uint16 *data, Uint16 length); // 计算MODBUS CRC
 void Modobus_485_ReceiveErr_handle(void);// //485通信接受错误处理，恢复
 void Modobus_485_GpioInit(void);
+Uint16 Read_HoldRegister(Uint16 reg_addr);
+Uint16 Write_HoldRegister(Uint16 reg_addr,Uint16 re_value);
+Uint16 Read_InputRegister(Uint16 reg_addr);
 //错误标志
 extern int crc_err;
 extern int func_code_err;
@@ -38,4 +41,27 @@ extern int receive_Rerr;
 extern int slave_addr_Rerr;
 extern Uint16 MODBUS_REG_VALUE[15];  // 寄存器值
 
+extern float speed_ref_ctr;//给定转速
+extern int motorspeed_rpm;//转速反馈
+extern int Turn_on_off;//上电，下电标志，直流接入控制
+extern int state_flag;//控制器状态，电机控制器状态
+extern int RELAY2_flag;//继电器使能，状态
+extern int RELAY1_flag;
+extern  float32 Bus_Voltage;
+extern  float32 Bus_Current;
+extern float32 Supercapacitor_Voltage;
+extern float32 Id_Current;
+extern float32 Iq_Current;
+//电池组
+extern Uint16 Bat_ERR_STATUS;
+extern Uint16 Bat_PACK_Voltage;
+extern Uint16 Bat_PACK_Current;
+extern Uint16 Bat_CELL_MaxVoltage;
+extern Uint16 Bat_CELL_MinVoltage;
+//电容组
+extern Uint16 Cap_ERR_STATUS;
+extern Uint16 Cap_PACK_Voltage;
+extern Uint16 Cap_PACK_Current;
+extern Uint16 Cap_CELL_MaxVoltage;
+extern Uint16 Cap_CELL_MinVoltage;
 #endif /* MODOBUSRTU_485_H_ */
