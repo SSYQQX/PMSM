@@ -344,8 +344,9 @@ int main(void)
             RELAY2_flag=1;
             RELAY2_flag_last=RELAY2_flag;//更新继电器状态
 
-            zhuanziDw_flag=1;//使能转子定位
             PID_Parameter_Init();//pid参数置零，初始化
+            zhuanziDw_flag=1;//使能转子定位
+
             DELAY_US(10*1000);//10ms
             GPIO_WritePin(12, 0);//PWM输出使能，0开1关  开PWM
             DELAY_US(1000*1000);//1s
@@ -361,18 +362,18 @@ int main(void)
                     {
                     DELAY_US(500*1000);//200ms
                     RELAY_1_ON();//开继电器1
-                    DELAY_US(1*1000);//1ms
                     RELAY1_flag=1;
                     RELAY1_flag_last=RELAY1_flag;//更新继电器状态
-
+                    DELAY_US(2000*1000);//2000ms,继电器1与继电器2切换时间过短会造成冲击
                     RELAY_2_OFF();//关继电器2
                     RELAY2_flag=0;
                     RELAY2_flag_last=RELAY2_flag;//更新继电器状态
 
+                    DELAY_US(1000*1000);//1S
                     on_flag=0;//开启成功
                     while(motor.Speed_N!=0);
-                    state_flag=1;//置状态为开。
 
+                    state_flag=1;//置状态为开启。
                     LED3_ON();//指示灯亮
                     }
             }
@@ -634,7 +635,7 @@ __interrupt void adca1_isr(void)
     //进行转子定位
     if(zhuanziDw_flag==1&&state_flag==0)
     {
-      Id_out_norm=0.1;//d轴给定一个电压吸附转子的d轴
+      Id_out_norm=0.05;//d轴给定一个电压吸附转子的d轴
       Iq_out_norm=0;
       Sin_the=0;
       Cos_the=1;
@@ -646,7 +647,7 @@ __interrupt void adca1_isr(void)
     //结束转子定位
     if(zhuanziDw_flag==0&&state_flag==0)
     {
-      Id_out_norm=0;//给定置零
+      Id_out_norm=0.02;//给定
       Iq_out_norm=0;
       Sin_the=0;
       Cos_the=1;
@@ -964,7 +965,7 @@ interrupt void xint1_isr(void)///KEY1 关
             Turn_on_off=0;//电容断开
 
             RELAY_1_OFF();//关继电器1
-            DELAY_US(1*1000);//1ms
+            DELAY_US(200*1000);//300ms
             RELAY_2_OFF();//关继电器2
         }
 

@@ -322,7 +322,7 @@ Uint16 Read_InputRegister(Uint16 reg_addr)
         re_value=(Uint16)(Supercapacitor_Voltage*100);//电容电压
         break;
     case 9:
-        re_value=(Uint16)(int)(Id_Current*100);//D轴电流
+        re_value=(Uint16)(int)(Id_Current*100);//D轴电流///先转int 再转 Uint16，否则符号会丢失。
         break;
     case 10:
         re_value=(Uint16)(int)(Iq_Current*100);//Q轴电流
