@@ -10,7 +10,7 @@
 // 包含的头文件
 //
 #include "F28x_Project.h"
-
+#include "bsp_gpio.h"
 //
 // 宏定义
 //
@@ -47,6 +47,7 @@ extern int Turn_on_off;//上电，下电标志，直流接入控制
 extern int state_flag;//控制器状态，电机控制器状态
 extern int RELAY2_flag;//继电器使能，状态
 extern int RELAY1_flag;
+extern Uint16 En_Torque_detec;//输入转矩检测使能位
 extern  float32 Bus_Voltage;
 extern  float32 Bus_Current;
 extern float32 Supercapacitor_Voltage;

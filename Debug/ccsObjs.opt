@@ -4,6 +4,7 @@
 "./BSP/EMIF/bsp_emif.obj"
 "./BSP/EMIF/emif_asram_pin_setup.obj"
 "./BSP/EPWM/bsp_epwm.obj"
+"./BSP/GPIO/bsp_gpio.obj"
 "./BSP/I2C/bsp_I2C.obj"
 "./BSP/INT/bsp_key.obj"
 "./BSP/INT/bsp_timer.obj"
@@ -77,9 +78,7 @@
 "../cmd/F2837xD_Headers_nonBIOS_cpu1.cmd"
 "../driverlib/ccs/Debug/driverlib.lib"
 "../driverlib/ccs/Debug/driverlib_coff.lib"
-"../driverlib/ccs/Debug/driverlib_eabi.lib"
 "../driverlib/ccs/Release/driverlib.lib"
 "../driverlib/ccs/Release/driverlib_coff.lib"
-"../driverlib/ccs/Release/driverlib_eabi.lib"
 -llibc.a
 -l"D:/controlSUITE/libs/app_libs/solar/v1.2/float/lib/Solar_Lib_Float.lib"

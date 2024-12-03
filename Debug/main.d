@@ -82,6 +82,9 @@ main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/INT/bsp_timer.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/EPWM/bsp_epwm.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/eQEP/bsp_eQEP.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/I2C/bsp_I2C.h
+main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/INT/bsp_key.h
+main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/RELAY/bsp_relay.h
+main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/GPIO/bsp_gpio.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/sysctl.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_nmi.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_sysctl.h
@@ -89,7 +92,6 @@ main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/emif.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_emif.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_memcfg.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/ADC/bsp_adc.h
-main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/RELAY/bsp_relay.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/PID/bsp_pid_ctrl.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/SPLL/SPLL_1ph.h
 main.obj: D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/Solar_F.h
@@ -288,6 +290,12 @@ D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/eQEP/bsp_eQEP.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/I2C/bsp_I2C.h:
 
+D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/INT/bsp_key.h:
+
+D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/RELAY/bsp_relay.h:
+
+D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/GPIO/bsp_gpio.h:
+
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/sysctl.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_nmi.h:
@@ -301,8 +309,6 @@ D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_emif.h:
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_memcfg.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/ADC/bsp_adc.h:
-
-D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/RELAY/bsp_relay.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/PID/bsp_pid_ctrl.h:
 

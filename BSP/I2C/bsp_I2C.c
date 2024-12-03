@@ -285,6 +285,10 @@ void I2CB_GpioInit(void)
 {
 GPIO_SetupPinMux(40, GPIO_MUX_CPU1, 6);
 GPIO_SetupPinMux(41, GPIO_MUX_CPU1, 6);
+
+// 配置GPIO工作模式，设置为输入模式
+GPIO_SetupPinOptions(40, GPIO_INPUT, GPIO_PULLUP);  // SCL 上拉
+GPIO_SetupPinOptions(41, GPIO_INPUT, GPIO_PULLUP);  // SDA 上拉
 }
 
 //

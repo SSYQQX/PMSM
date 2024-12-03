@@ -31,7 +31,7 @@ Motor_Para motor;
 //编码器计算
 void POSSPEED_Calc()
 {
-    float32 temp_CapturePeriod=0;//捕获周期临时寄存器
+//    float32 temp_CapturePeriod=0;//捕获周期临时寄存器
     // QPOSCNT
      motor.mech_position=EQep1Regs.QPOSCNT;//读取当前位置
      motor.DirectionQep=EQep1Regs.QEPSTS.bit.QDF;//旋转方向

@@ -273,13 +273,21 @@ Uint16 Read_HoldRegister(Uint16 reg_addr)//读
     case 5:
         re_value=(Uint16)RELAY2_flag;
         break;
+    case 21:
+        re_value=En_Torque_detec;//输入转矩检测使能位
+        break;
+    case 22:
+        re_value=CHARGE_FLAG;//电池充电使能
+        break;
     default:
         re_value=0;
+
     }
+
     return re_value;
 
 }
-Uint16 Write_HoldRegister(Uint16 reg_addr,Uint16 Wite_Value)
+Uint16 Write_HoldRegister(Uint16 reg_addr,Uint16 Wite_Value)//写
 {
     Uint16 re_value=0;
     switch(reg_addr)
@@ -295,6 +303,12 @@ Uint16 Write_HoldRegister(Uint16 reg_addr,Uint16 Wite_Value)
         break;
     case 5:
         RELAY2_flag=(int)Wite_Value;
+        break;
+    case 21:
+        En_Torque_detec=Wite_Value;//输入转矩检测使能位
+        break;
+    case 22:
+        CHARGE_FLAG=Wite_Value;//电池充电使能
         break;
     default:
         re_value=0;

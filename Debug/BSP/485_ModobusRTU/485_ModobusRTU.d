@@ -68,6 +68,7 @@ BSP/485_ModobusRTU/485_ModobusRTU.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_Spee
 BSP/485_ModobusRTU/485_ModobusRTU.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/common/include/F2837xD_SysCtrl_defines.h
 BSP/485_ModobusRTU/485_ModobusRTU.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/common/include/F2837xD_Upp_defines.h
 BSP/485_ModobusRTU/485_ModobusRTU.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/common/include/F2837xD_defaultisr.h
+BSP/485_ModobusRTU/485_ModobusRTU.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/GPIO/bsp_gpio.h
 
 ../BSP/485_ModobusRTU/485_ModobusRTU.c:
 
@@ -204,4 +205,6 @@ D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/common/include/F2837xD_SysCtrl_defi
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/common/include/F2837xD_Upp_defines.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/common/include/F2837xD_defaultisr.h:
+
+D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/GPIO/bsp_gpio.h:
 

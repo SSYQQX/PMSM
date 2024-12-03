@@ -9,6 +9,8 @@
 #include "bsp_epwm.h"
 #include "bsp_eQEP.h"
 #include "bsp_I2C.h"
+#include "bsp_key.h"
+#include "bsp_gpio.h"
 #include "sysctl.h"
 #include "emif.h"
 #include "bsp_adc.h"
@@ -133,9 +135,6 @@ __interrupt void adcd1_isr(void);
 __interrupt void cpu_timer1_isr(void);
 
 __interrupt void INTERRUPT_ISR_TZProtect(void);
-//按键中断
-interrupt void xint1_isr(void);
-interrupt void xint2_isr(void);
 
 extern FILTE VBus_filte;
 extern FILTE Vab_filte;
@@ -143,21 +142,20 @@ extern FILTE temp_filte;
 
 
 //dq变换
-ABC_DQ0_POS_F abc_dq0_pos1_speed;
+ABC_DQ0_POS_F abc_dq0_pos1_speed;//速度控制
 
-ABC_DQ0_POS_F abc_dq0_pos1_cur;
+ABC_DQ0_POS_F abc_dq0_pos1_cur;//电流控制
 
 DQ0_ABC_F dq0_abc1_cur;
 
 void PID_Parameter_Init(void);
 
-
-void key_Init(void);//按键中断初始化。
-
+//触发
 int TZ_flag=3;
 int TZ=0;
 
 //转矩检测变量
+Uint16 En_Torque_detec=0;
 int zl_flag=0;
 int gd_f=0;
 int gd_count=1500;//转矩检测用，
@@ -175,7 +173,8 @@ int main(void)
     IFR = 0x0000;
     //清空中断向量表，即清空所有的中断地址表
     InitPieVectTable();
-
+    //电池充电控制脚
+    Battery_Charge_GpioInit();
     //I2C初始化
     I2CB_GpioInit();//I2C io初始
     I2CB_Init();
@@ -380,6 +379,8 @@ int main(void)
         Modobus_485_ReceiveErr_handle();
 	    }
 
+	    Battery_Charge_EN(CHARGE_FLAG);
+
 	}
 }
 
@@ -417,38 +418,41 @@ __interrupt void adca1_isr(void)
 
     if(state_flag==1)//开启状态
     {
-//        if(speed_ref_ctr==0&&zl_flag<100)//检测到转矩电流，开机
-//          {
-//            //zl_flag++;
-//            if(Iq_Current>1.5) zl_flag++;
-//            else zl_flag=0;
-//
-//            if(zl_flag==100)
-//            {
-//            speed_ref_ctr=1000;//给定转速
-//            }
-//          }
-//        //zl_flag>=20&&
-//        if((motor.Speed_N<-900) && (speed_ref_ctr>900))//检测到电流连续小于0达gd_count次，则关断
-//        {
-//            if(Iq_Current<0) zl_flag++;
-//            else zl_flag=100;
-//
-//            if(zl_flag==gd_count)
-//            {
-//              if(abs(speed_ref_ctr+motor.Speed_N)<50)//处于稳态时
-//                speed_ref_ctr=0;//给定转速
-//                zl_flag=100;
-//                gd_f++;//记录关断次数
-//            }
-//        }
-//
-//        if(motor.Speed_N==0&&Iq_Current<0) //如果转速过低，电流为转动，则置为初始状态
-//        {
-//           // GPIO_WritePin(12, 1);//关
-//            speed_ref_ctr=0;//给定转速
-//            zl_flag=0;
-//        }
+        if(En_Torque_detec==1)//开启输入转矩检测。检测到有输入转矩则开始启动
+        {
+            if(speed_ref_ctr==0&&zl_flag<100)//检测到转矩电流，开机
+              {
+                //zl_flag++;
+                if(Iq_Current>1.5) zl_flag++;
+                else zl_flag=0;
+
+                if(zl_flag==100)
+                {
+                speed_ref_ctr=1000;//给定转速
+                }
+              }
+            //zl_flag>=20&&
+            if((motor.Speed_N<-900) && (speed_ref_ctr>900))//检测到电流连续小于0达gd_count次，则关断
+            {
+                if(Iq_Current<0) zl_flag++;
+                else zl_flag=100;
+
+                if(zl_flag==gd_count)
+                {
+                  if(abs(speed_ref_ctr+motor.Speed_N)<50)//处于稳态时
+                    speed_ref_ctr=0;//给定转速
+                    zl_flag=100;
+                    gd_f++;//记录关断次数
+                }
+            }
+
+            if(motor.Speed_N==0&&Iq_Current<0) //如果转速过低，电流为转动，则置为初始状态
+            {
+               // GPIO_WritePin(12, 1);//关
+                speed_ref_ctr=0;//给定转速
+                zl_flag=0;
+            }
+        }
 
     //电流采样
     APhase_Current=AdcaResultRegs.ADCRESULT0;//y = 0.015x - 31.077
@@ -644,97 +648,6 @@ __interrupt void INTERRUPT_ISR_TZProtect(void)
 //    EPwm1Regs.TZCLR.bit.INT = 1;    //clear INT flag
 //    EDIS;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP2; // Acknowledge interrupt to PIE
-}
-
-
-
-void key_Init(void)
-{
-    //按键中断配置
-        // GPIO26 and GPIO27 are inputs，作为中断触发源
-        //
-           EALLOW;
-           GpioCtrlRegs.GPAMUX2.bit.GPIO26 = 0;         // GPIO，功能复用选择
-           GpioCtrlRegs.GPADIR.bit.GPIO26 = 0;          // input
-           GpioCtrlRegs.GPAQSEL2.bit.GPIO26 = 0;        // XINT1 Synch to SYSCLKOUT only
-
-           GpioCtrlRegs.GPAMUX2.bit.GPIO27 = 0;         // GPIO
-           GpioCtrlRegs.GPADIR.bit.GPIO27 = 0;          // input
-           GpioCtrlRegs.GPAQSEL2.bit.GPIO27 = 2;        // XINT2 Qual using 6 samples
-           GpioCtrlRegs.GPACTRL.bit.QUALPRD0 = 0xFF;   // Each sampling window
-                                                       // is 510*SYSCLKOUT
-           EDIS;
-           // GPIO26 is XINT1, GPIO27 is XINT2
-           //复用引脚为中断
-              GPIO_SetupXINT1Gpio(26);
-              GPIO_SetupXINT2Gpio(27);
-        // Configure XINT1
-        //上升沿触发
-          XintRegs.XINT1CR.bit.POLARITY = 1;          //0 Falling edge interrupt.1 Rising edge interrupt
-          XintRegs.XINT2CR.bit.POLARITY = 1;          // Falling edge interrupt
-          //// Enable XINT1 and XINT2
-                     //
-        XintRegs.XINT1CR.bit.ENABLE = 1;            // Enable XINT1
-        XintRegs.XINT2CR.bit.ENABLE = 1;            // Enable XINT2
-
-        //配置中断函数地址
-            EALLOW; // This is needed to write to EALLOW protected registers
-            PieVectTable.XINT1_INT = &xint1_isr;
-            PieVectTable.XINT2_INT = &xint2_isr;
-            EDIS;   // This is needed to disable write to EALLOW protected registers
-            //开CPU中断
-            IER |= M_INT1;//开中断1,中断1.INT4、1.INT5在其中，即按键中断。
-            //开PIE中断
-            PieCtrlRegs.PIEIER1.bit.INTx4 = 1;          // Enable PIE Group 1 INT4，外部中断1，XINT1
-            PieCtrlRegs.PIEIER1.bit.INTx5 = 1;          // Enable PIE Group 1 INT5，外部中断2,XINT2
-
-}
-
-interrupt void xint1_isr(void)///KEY1 关
-{
-//    GpioDataRegs.GPBCLEAR.all = 0x4;   // GPIO34 is low
-//    Xint1Count++;
-
-    //
-    // Acknowledge this interrupt to get more from group 1
-    //
-    if(GpioDataRegs.GPADAT.bit.GPIO26==1)
-    {
-        DELAY_US(50);
-        if(GpioDataRegs.GPADAT.bit.GPIO26==1)
-        {
-            while(GpioDataRegs.GPADAT.bit.GPIO26==1);
-
-            Turn_on_off=0;//电容断开
-
-            RELAY_1_OFF();//关继电器1
-            DELAY_US(200*1000);//300ms
-            RELAY_2_OFF();//关继电器2
-        }
-
-    }
-
-    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
-}
-
-//
-// xint2_isr - External Interrupt 2 ISR
-//
-interrupt void xint2_isr(void)///KEY2 开
-{
-
-    if(GpioDataRegs.GPADAT.bit.GPIO27==1)
-    {
-        DELAY_US(50);
-        if(GpioDataRegs.GPADAT.bit.GPIO27==1)
-        {
-            while(GpioDataRegs.GPADAT.bit.GPIO27==1);
-
-            Turn_on_off=1;//电容接入
-        }
-
-    }
-    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 }
 
 
