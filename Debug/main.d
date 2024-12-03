@@ -80,6 +80,8 @@ main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/EMIF/bsp_emif.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/LED/bsp_led.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/INT/bsp_timer.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/EPWM/bsp_epwm.h
+main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/eQEP/bsp_eQEP.h
+main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/I2C/bsp_I2C.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/sysctl.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_nmi.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_sysctl.h
@@ -120,7 +122,6 @@ main.obj: D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_1ph_SOGI_F
 main.obj: D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_3PH_DDSRF_F.h
 main.obj: D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_3PH_SRF_F.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/SPLL_FLL/spll_1ph_sogi_fll.h
-main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV2/BSP/I2C/bsp_I2C.h
 main.obj: D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/485_ModobusRTU/485_ModobusRTU.h
 
 ../main.c:
@@ -283,6 +284,10 @@ D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/INT/bsp_timer.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/EPWM/bsp_epwm.h:
 
+D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/eQEP/bsp_eQEP.h:
+
+D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/I2C/bsp_I2C.h:
+
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/sysctl.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/driverlib/inc/hw_nmi.h:
@@ -362,8 +367,6 @@ D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_3PH_DDSRF_F.h:
 D:/controlSUITE/libs/app_libs/solar/v1.2/float/include/SPLL_3PH_SRF_F.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier1/BSP/SPLL_FLL/spll_1ph_sogi_fll.h:
-
-D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV2/BSP/I2C/bsp_I2C.h:
 
 D:/CCS_WorkSpace/ThreePhaseRectifier_SpeedV3/BSP/485_ModobusRTU/485_ModobusRTU.h:
 

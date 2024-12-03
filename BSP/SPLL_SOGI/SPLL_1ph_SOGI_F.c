@@ -1,5 +1,4 @@
 #include "Solar_F.h"
-extern int F_flag;
 //*********** Structure Init Function ****//
 void SPLL_1ph_SOGI_F_init(int Grid_freq, float32 DELTA_T, SPLL_1ph_SOGI_F *spll_obj)
 {
@@ -44,7 +43,6 @@ void SPLL_1ph_SOGI_F_init(int Grid_freq, float32 DELTA_T, SPLL_1ph_SOGI_F *spll_
 //*********** Structure Coeff Update *****//
 void SPLL_1ph_SOGI_F_coeff_update(float32 delta_T, float32 wn, SPLL_1ph_SOGI_F *spll)
 {
-    F_flag++;
 	float32 osgx,osgy,temp;
 	spll->osg_coeff.osg_k=(float32)(0.5);
 	osgx=(float32)(2.0*0.5*wn*delta_T);

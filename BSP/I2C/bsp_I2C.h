@@ -10,6 +10,8 @@
 #define REG_ADDR             0x66//
 
 extern int COM_flag;//读写设备号
+extern int I2C_ERROR_FLAG;//I2C故障标志
+extern int COM_Allow;//I2C访问控制位，=2时通信
 
 extern struct I2CMSG I2cMsgOut1;//声名
 extern struct I2CMSG I2cMsgIn1;
@@ -19,6 +21,8 @@ extern Uint16 PassCount;
 extern Uint16 FailCount;
 // Function Prototypes
 //当I2C总线处于空闲状态时（没有数据传输），SCL和SDA都保持高电平。
+/////////////////I2C////////////////////
+__interrupt void i2c_int1a_isr(void);
 void I2CB_GpioInit(void);
 void   I2CB_Init(void);
 Uint16 I2CB_WriteData(struct I2CMSG *msg);

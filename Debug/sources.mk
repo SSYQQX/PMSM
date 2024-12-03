@@ -122,6 +122,7 @@ BSP/LED \
 BSP/PID \
 BSP/RELAY \
 BSP/SPLL_SOGI \
+BSP/eQEP \
 cmd \
 common/source \
 driverlib \

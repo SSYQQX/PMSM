@@ -7,6 +7,8 @@
 #include "bsp_led.h"
 #include "bsp_timer.h"
 #include "bsp_epwm.h"
+#include "bsp_eQEP.h"
+#include "bsp_I2C.h"
 #include "sysctl.h"
 #include "emif.h"
 #include "bsp_adc.h"
@@ -20,7 +22,6 @@
 #include "bsp_I2C.h"
 #include "485_ModobusRTU.h"
 
-#define PI     3.14159265f
 #define ld     103.85e-6
 //#define lq      61e-6   表贴式Ld=Lq
 #define lq     95.78e-6
@@ -150,53 +151,16 @@ DQ0_ABC_F dq0_abc1_cur;
 
 void PID_Parameter_Init(void);
 
-__interrupt void myEQEP1_ISR(void);
-void Init_Variables(void);
-void Init_EQEP1_Gpio(void);
-void Init_EQEP1(void);
-void POSSPEED_Calc();
-
-int motorspeed_rpm=0;//
-
-
-
-
-int F_flag=0;
-Uint32 led_count=0;
-Uint32 led_T=5000000;
-
-struct Motor_Para
-{
-    int DirectionQep;           //电机旋转方向
-    float32 mech_position; //实时机械位置
-    int Speed_N;
-    int Speed_H;
-    int Speed_L;
-    unsigned int long Now_position;         //变量：当前位置
-    unsigned int long Last_position;           //变量：上一次位置
-    float32 mech_scaler;    //一转的总脉冲数的倒数  1/10000
-    float32 theta_mech;
-    float32 theta_elec;
-    float32 w_elec;//电角速度
-    int pole_pairs;//极对数
-}motor;
-
-
-float32 SPEED_cal_K=0.0001*1000*60;//转速计算系数=1/10000*编码器采样频率*60秒。
 
 void key_Init(void);//按键中断初始化。
 
 int TZ_flag=3;
 int TZ=0;
-/////////////////I2C////////////////////
-__interrupt void i2c_int1a_isr(void);
-int COM_flag=100;//读写设备号
-int COM_Allow=0;
-int I2C_ERROR_FLAG=0;//I2C故障标志
 
+//转矩检测变量
 int zl_flag=0;
 int gd_f=0;
-int gd_count=1500;
+int gd_count=1500;//转矩检测用，
 int main(void)
 {
 
@@ -547,31 +511,9 @@ __interrupt void adca1_isr(void)
     speed_pid.Imax=speed_out_limit;
     speed_pid.Imin=-speed_out_limit;
 
-//    //电流内环参数
-//    current_pid_d.PIDmax=speed_ref+2;
-//    current_pid_d.PIDmin=-speed_ref-2;
-//    current_pid_d.Imax=speed_ref+2;
-//    current_pid_d.Imin=-speed_ref-2;
-//
-//    current_pid_q.PIDmax=speed_ref+2;
-//    current_pid_q.PIDmin=-speed_ref-2;
-//    current_pid_q.Imax=speed_ref+2;
-//    current_pid_q.Imin=-speed_ref-2;
    }
    speed_pid.Kp=speed_pid_kp;
    speed_pid.Ki=speed_pid_ki;
-//   current_pid_q.Kp=Iq_pid_kp;
-//   current_pid_q.Ki=Iq_pid_ki;
-//   current_pid_d.Kp=Id_pid_kp;
-//   current_pid_d.Ki=Id_pid_ki;
-//       current_pid_q.PIDmax=current_out_limit;
-//       current_pid_q.PIDmin=-current_out_limit;
-//       current_pid_q.Imax=current_out_limit;
-//       current_pid_q.Imin=-current_out_limit;
-//       current_pid_d.PIDmax=current_out_limit;
-//       current_pid_d.PIDmin=-current_out_limit;
-//       current_pid_d.Imax=current_out_limit;
-//       current_pid_d.Imin=-current_out_limit;
 
     //PID控制
     //转速外环
@@ -602,33 +544,6 @@ __interrupt void adca1_isr(void)
     if(Id_out_norm<-1)Id_out_norm=-1;
     if(Iq_out_norm>1)Iq_out_norm=1;
     if(Iq_out_norm<-1)Iq_out_norm=-1;
-
-//    //dq--abc
-//    dq0_abc1_cur.d =Id_out_norm;
-//    dq0_abc1_cur.q =Iq_out_norm;
-//    dq0_abc1_cur.z =0;
-//    dq0_abc1_cur.sin =Sin_the;
-//    dq0_abc1_cur.cos =Cos_the;
-//    DQ0_ABC_F_FUNC(&dq0_abc1_cur);
-//
-//    Varef=dq0_abc1_cur.a;
-//    if(Varef>1)Varef=1;
-//    if(Varef<-1)Varef=-1;
-//
-//    Vbref=dq0_abc1_cur.b;
-//    if(Vbref>1)Vbref=1;
-//    if(Vbref<-1)Vbref=-1;
-//
-//    Vcref=dq0_abc1_cur.c;
-//    if(Vcref>1)Vcref=1;
-//    if(Vcref<-1)Vcref=-1;
-////
-//    EPwm1Regs.CMPA.bit.CMPA =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
-//    EPwm1Regs.CMPB.bit.CMPB =  EPwm1Regs.TBPRD*((1.0+M*Varef)/2.0);
-//    EPwm2Regs.CMPA.bit.CMPA =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
-//    EPwm2Regs.CMPB.bit.CMPB =  EPwm2Regs.TBPRD*((1.0+M*Vbref)/2.0);
-//    EPwm3Regs.CMPA.bit.CMPA =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
-//    EPwm3Regs.CMPB.bit.CMPB =  EPwm3Regs.TBPRD*((1.0+M*Vcref)/2.0);
 
     }
 
@@ -731,179 +646,7 @@ __interrupt void INTERRUPT_ISR_TZProtect(void)
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP2; // Acknowledge interrupt to PIE
 }
 
-//编码器计算
-void POSSPEED_Calc()
-{
-    float32 temp_CapturePeriod=0;//捕获周期临时寄存器
-    // QPOSCNT
-     motor.mech_position=EQep1Regs.QPOSCNT;//读取当前位置
-     motor.DirectionQep=EQep1Regs.QEPSTS.bit.QDF;//旋转方向
-     //机械角度与电角度采样频率与控制频率相同，20K
-     motor.theta_mech=motor.mech_position*motor.mech_scaler*2*PI;//机械角度
-     motor.theta_elec=motor.theta_mech*motor.pole_pairs;//旋转角度，即电角度
 
-//     SPEED_N=30*(motor.theta_mech-theta_mech_last)/(PI*5e-5);
-//     theta_mech_last=motor.theta_mech;
-     // Check an index occurrence
-     ////索引事件锁存中断，即Z信号。发生时将位置计数器锁存到QPOSILAT寄存器。注意不是QPOSLAT
-     if(EQep1Regs.QFLG.bit.IEL == 1)
-     {
-     //   p->index_sync_flag = 0x00F0;
-        EQep1Regs.QCLR.bit.IEL = 1;    // Clear __interrupt flag
-     }
-     //转速采样频率为100Hz
-     //高速计算
-     //单位计时器中断
-     if(EQep1Regs.QFLG.bit.UTO == 1)
-     {
-         motor.Now_position=EQep1Regs.QPOSLAT;//进入中断时的脉冲计数值，由QPOSCNT锁存进来
-        if (motor.DirectionQep)    //正向旋转，增计数
-        {
-           if(motor.Last_position>motor.Now_position)
-               motor.Speed_H=(10000-motor.Last_position+motor.Now_position)*SPEED_cal_K;    //0.01根据UTO的时间周期计算,0.6=1/10000*100*60
-           else
-               motor.Speed_H=(motor.Now_position-motor.Last_position)*SPEED_cal_K;     //0.01根据UTO的时间周期计算
-
-        //   motor.w_elec=(float32)motor.Speed_H*PI*5.0/30.0;//电角速度计算
-        }
-        else
-        {
-           if(motor.Last_position>=motor.Now_position)
-               motor.Speed_H=-(int)(motor.Last_position-motor.Now_position)*SPEED_cal_K; //0.01根据UTO的时间周期计算
-           else
-               motor.Speed_H=-(int)(10000-motor.Now_position+motor.Last_position)*SPEED_cal_K;    //0.01根据UTO的时间周期计算
-        //   motor.w_elec=(float32)motor.Speed_H*PI*5.0/30.0;//电角速度计算
-        }
-        motor.Last_position=motor.Now_position;
-        EQep1Regs.QCLR.bit.UTO=1;                   //清除中断标志
-     }
-
-
-//     //低速计算，与UTO无关
-//     if(EQep1Regs.QEPSTS.bit.UPEVNT == 1)               // Unit position event，单位位置事件中断，
-//     {
-//         if(EQep1Regs.QEPSTS.bit.COEF == 0)             // No Capture overflow，捕获定时器溢出标志
-//         {
-//             temp_CapturePeriod = (unsigned long)EQep1Regs.QCPRDLAT; // temp1 = t2-t1，捕获周期值
-//         }
-//         else   // Capture overflow, saturate the result
-//         {
-//             temp_CapturePeriod = 0xFFFF;//计时器溢出，赋值给满 65535
-//         }
-//         motor.Speed_L=600000/temp_CapturePeriod;//转化为rpm
-//         if(motor.Speed_L>6000) motor.Speed_L=6000;//当中断频率为100hZ时。最大转速/10000*100*60
-//         if(motor.DirectionQep)
-//         {
-//             motor.Speed_L=motor.Speed_L;
-//         }
-//         else
-//         {
-//             motor.Speed_L=-motor.Speed_L;
-//         }
-//         EQep1Regs.QEPSTS.all = 0x88; // Clear Unit position event flag
-//                                      // Clear overflow error flag
-//     }
-
-     motor.Speed_N=motor.Speed_H;
-     motorspeed_rpm=motor.Speed_N;
-     motor.w_elec=(float32)motor.Speed_N*PI*5.0/30.0;//电角速度计算
-}
-
-
-
-
-void Init_Variables(void)
-{
-    motor.Now_position=0;
-    motor.Last_position=0;
-    motor.mech_position=0;
-    motor.Speed_N=0;
-    motor.Speed_H=0;
-    motor.Speed_L=0;
-    motor.mech_scaler=1.0/10000.0;
-    motor.theta_mech=0.0;
-    motor.theta_elec=0.0;
-    motor.w_elec=0;
-    motor.pole_pairs=5;
-}
-void Init_EQEP1_Gpio()
-{
-    EALLOW;
-    //    SysCtrlRegs.PCLKCR3.bit.GPIOINENCLK = 1;// 开启GPIO时钟
-   // CpuSysRegs.PCLKCR1.bit.EQEP1ENCLK = 1;  // eQEP1
-    CpuSysRegs.PCLKCR4.bit.EQEP1 = 1;  // eQEP1
-
-     GpioCtrlRegs.GPBPUD.bit.GPIO50 = 0; // Enable pull-up on GPIO50 (EQEP1A)
-     GpioCtrlRegs.GPBPUD.bit.GPIO51 = 0; // Enable pull-up on GPIO51 (EQEP1B)
-     GpioCtrlRegs.GPBPUD.bit.GPIO53 = 0; // Enable pull-up on GPIO53 (EQEP1I)
-
-     GpioCtrlRegs.GPBQSEL2.bit.GPIO50 = 0; // Sync to SYSCLKOUT GPIO50 (EQEP1A)
-     GpioCtrlRegs.GPBQSEL2.bit.GPIO51 = 0; // Sync to SYSCLKOUT GPIO51 (EQEP1B)
-     GpioCtrlRegs.GPBQSEL2.bit.GPIO53 = 0; // Sync to SYSCLKOUT GPIO53 (EQEP1I)
-
-     GpioCtrlRegs.GPBMUX2.bit.GPIO50=1; //QEPA
-     GpioCtrlRegs.GPBMUX2.bit.GPIO51=1; //QEPB
-     GpioCtrlRegs.GPBMUX2.bit.GPIO53=1; //QEPI
-
-     EDIS;
-}
-
-
-//编码器配置
-void Init_EQEP1()
-{
-    //停止EQEP模块
-    EQep1Regs.QEPCTL.bit.QPEN = 0;
-    //清除计数器和中断标志
-    EQep1Regs.QPOSCNT = 0;
-    EQep1Regs.QCLR.all = 0xFFFF;
-    //配置输入属性
-    EQep1Regs.QDECCTL.bit.QSRC=0; //设定eQep的计数模式为正交模式
-    EQep1Regs.QDECCTL.bit.SWAP=0; //QEPA和QEPB信号不交换
-    EQep1Regs.QDECCTL.bit.QAP=0;  //QEPA信号不取反
-    EQep1Regs.QDECCTL.bit.QBP=0;  //QEPB信号不取反
-    EQep1Regs.QDECCTL.bit.QIP=0;  //QIP信号不取反
-    EQep1Regs.QEPCTL.bit.FREE_SOFT=2;//仿真控制位：位置计数器不受影响
-    //配置位置计数器运行模式、初始化方式、最大值
-    EQep1Regs.QEPCTL.bit.PCRM=00; //设定PCRM=00，即QPOSCNT在每次Index脉冲都复位
-    //正转复位到0，反转复位到QPOSMAX。
-    EQep1Regs.QEPCTL.bit.IEI=2;     //在QEPI上升沿初始化位置计数器
-    EQep1Regs.QPOSMAX =9999;
-   //EQep1Regs.QPOSMAX = 0xFFFFFFFF;
-    //QEP捕捉锁存模式设置为单位时间事件发生时将QPOSCNT的值锁存到QPOSLAT中
-    EQep1Regs.QEPCTL.bit.QCLM=1;
-    //配置UTE单元时间、中断使能、使能
-    EQep1Regs.QUPRD=200000; //分频数。当SYSCLKOUT=200MHz时，2e6设定Unit Timer溢出频率为100Hz,2e5为1000hz；
-    EQep1Regs.QEINT.bit.UTO=1;//使能UTO中断
-    EQep1Regs.QEPCTL.bit.UTE=1;   //使能UTE,使能单位定时器
-//    QFRC
-//    EQep1Regs.QFRC.bit.UTO=1;//QEP的中断源
-
-    //若要用QCAP单元进行精确的速度测量，可以配置QCAP单元
-    EQep1Regs.QCAPCTL.bit.UPPS = 5;    // 1/32 预分频器//单位位置事件预分频器  n个边沿脉冲为一个事件
-    EQep1Regs.QCAPCTL.bit.CCPS = 6;    // 1/64 预分频器//捕获时钟预分频  sysclk/n
-    EQep1Regs.QCAPCTL.bit.CEN=1;  //使能eQEP的捕获功能
-    //开启EQEP模块，并用软件初始化位置计数器
-    EQep1Regs.QEPCTL.bit.SWI = 1;
-    EQep1Regs.QEPCTL.bit.QPEN = 1;
-}
-//
-//void  Init_EQEP1(void)
-//{
-//    EQep1Regs.QUPRD = 2000000;            // Unit Timer for 100Hz at 200 MHz
-//                                          // SYSCLKOUT
-//    EQep1Regs.QDECCTL.bit.QSRC = 00;      // QEP quadrature count mode
-//    EQep1Regs.QEPCTL.bit.FREE_SOFT = 2;
-//    EQep1Regs.QEPCTL.bit.PCRM = 00;       // PCRM=00 mode - QPOSCNT reset on
-//                                          // index event
-//    EQep1Regs.QEPCTL.bit.UTE = 1;         // Unit Timeout Enable
-//    EQep1Regs.QEPCTL.bit.QCLM = 1;        // Latch on unit time out
-//    EQep1Regs.QPOSMAX =9999;
-//    EQep1Regs.QEPCTL.bit.QPEN = 1;        // QEP enable
-//    EQep1Regs.QCAPCTL.bit.UPPS = 5;       // 1/32 for unit position
-//    EQep1Regs.QCAPCTL.bit.CCPS = 6;       // 1/64 for CAP clock
-//    EQep1Regs.QCAPCTL.bit.CEN = 1;        // QEP Capture Enable
-//}
 
 void key_Init(void)
 {
@@ -994,105 +737,5 @@ interrupt void xint2_isr(void)///KEY2 开
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 }
 
-//
-// i2c_int1a_isr - I2CA ISR
-//中断服务程序会检查CurrentMsgPtr指向的消息结构体的MsgStatus字段，以确定当前操作的状态
-__interrupt void i2c_int1a_isr(void)
-{
-    Uint16 IntSource, i;
-    //
-    // Read __interrupt source
-    //
-    IntSource = I2cbRegs.I2CISRC.all;//中断源
-
-    //
-    // Interrupt source = stop condition detected
-    //检查是否检测到了停止条件中断
-    //在I2C协议中，停止条件是由主设备生成的，用来通知总线上的所有设备通信即将结束。
-    //停止条件的特点是SCL（时钟线）为高电平期间SDA（数据线）从低电平变为高电平。
-    if(IntSource == I2C_SCD_ISRC)//STOP//先判断停止条件！！！！表明当前写、读操作已经结束
-    {
-        //
-        // If completed message was writing data, reset msg to inactive state
-        //如果当前消息状态是I2C_MSGSTAT_WRITE_BUSY（正在写入），则将其重置为非活动状态
-        if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_WRITE_BUSY)
-        {
-            CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_INACTIVE;//写完成
-
-        }
-        else
-        {
-            //
-            // If a message receives a NACK during the address setup portion of
-            // the EEPROM read, the code further below included in the register
-            // access ready __interrupt source code will generate a stop
-            // condition. After the stop condition is received (here), set the
-            // message status to try again. User may want to limit the number of
-            // retries before generating an error.
-
-            //如果当前消息状态是I2C_MSGSTAT_SEND_NOSTOP_BUSY（正在发送地址，不停止），
-            //则将其重置为准备发送状态（I2C_MSGSTAT_SEND_NOSTOP），以便重试。
-            if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_SEND_NOSTOP_BUSY)
-            {
-                CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_SEND_NOSTOP;
-            }
-            //
-            // If completed message was reading EEPROM data, reset msg to
-            // inactive state and read data from FIFO.
-            //
-            //如果当前消息状态是I2C_MSGSTAT_READ_BUSY（正在读取），则将其重置为非活动状态，
-            //并从FIFO中读取数据。
-            else if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_READ_BUSY)//读完成
-            {
-                CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_INACTIVE;
-
-                for(i=0; i < I2cMsgIn1.NumOfBytes; i++)
-                {
-                    CurrentMsgPtr->MsgBuffer[i] = I2cbRegs.I2CDRR.all;
-                }
-
-               // COM_flag=3;//读完成
-                I2cbRegs.I2CFFRX.bit.RXFFRST = 0; //复位 RXFIFO
-                I2cbRegs.I2CFFRX.bit.RXFFRST = 1;    // Enable RXFIFO, clear RXFFINT
-
-            }
-        }
-    }
-
-    //
-    // Interrupt source = Register Access Ready
-    // This __interrupt is used to determine when the EEPROM address setup
-    // portion of the read data communication is complete. Since no stop bit is
-    // commanded, this flag tells us when the message has been sent instead of
-    // the SCD flag. If a NACK is received, clear the NACK bit and command a
-    // stop. Otherwise, move on to the read data portion of the communication.
-    //处理寄存器访问就绪中断
-    else if(IntSource == I2C_ARDY_ISRC)
-    {
-        if(I2cbRegs.I2CSTR.bit.NACK == 1)//如果检测到NACK,则发送停止条件并清除NACK位。
-        {
-            I2cbRegs.I2CMDR.bit.STP = 1;
-            I2cbRegs.I2CSTR.all = I2C_CLR_NACK_BIT;
-        }
-        else if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_SEND_NOSTOP_BUSY)
-        {
-            CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_RESTART;//更新为准备重启状态,以便进行数据读取
-        }
-    }
-    else
-    {
-        //处理无效中断源:
-        // Generate some error due to invalid __interrupt source
-        //
-        __asm("   ESTOP0");
-    }
-
-    //
-    // Enable future I2C (PIE Group 8) __interrupts
-    //重新启用I2C中断
-    PieCtrlRegs.PIEACK.all = PIEACK_GROUP8;
-
-   // 在中断处理程序中可以通过I2caRegs.I2CMDR.bit.IRS位清零从而复位I2CSTR状态寄存器，实现I2C模块的复位。
-}
 
 

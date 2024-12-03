@@ -1,8 +1,8 @@
 #include "bsp_I2C.h"
 
-extern int COM_flag;
-extern int I2C_ERROR_FLAG;//I2C故障标志
-
+int COM_flag=100;//读写设备号
+int I2C_ERROR_FLAG=0;//I2C故障标志
+int COM_Allow=0;//I2C访问控制位，=2时通信
 ///////////////////////////////BMS变量//////////////////////////////////////////////////
 
 //寄存器配置值
@@ -822,3 +822,105 @@ void Read_BMS_Information(int flag)
         }
 
 }
+
+//
+// i2c_int1a_isr - I2CA ISR
+//中断服务程序会检查CurrentMsgPtr指向的消息结构体的MsgStatus字段，以确定当前操作的状态
+__interrupt void i2c_int1a_isr(void)
+{
+    Uint16 IntSource, i;
+    //
+    // Read __interrupt source
+    //
+    IntSource = I2cbRegs.I2CISRC.all;//中断源
+
+    //
+    // Interrupt source = stop condition detected
+    //检查是否检测到了停止条件中断
+    //在I2C协议中，停止条件是由主设备生成的，用来通知总线上的所有设备通信即将结束。
+    //停止条件的特点是SCL（时钟线）为高电平期间SDA（数据线）从低电平变为高电平。
+    if(IntSource == I2C_SCD_ISRC)//STOP//先判断停止条件！！！！表明当前写、读操作已经结束
+    {
+        //
+        // If completed message was writing data, reset msg to inactive state
+        //如果当前消息状态是I2C_MSGSTAT_WRITE_BUSY（正在写入），则将其重置为非活动状态
+        if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_WRITE_BUSY)
+        {
+            CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_INACTIVE;//写完成
+
+        }
+        else
+        {
+            //
+            // If a message receives a NACK during the address setup portion of
+            // the EEPROM read, the code further below included in the register
+            // access ready __interrupt source code will generate a stop
+            // condition. After the stop condition is received (here), set the
+            // message status to try again. User may want to limit the number of
+            // retries before generating an error.
+
+            //如果当前消息状态是I2C_MSGSTAT_SEND_NOSTOP_BUSY（正在发送地址，不停止），
+            //则将其重置为准备发送状态（I2C_MSGSTAT_SEND_NOSTOP），以便重试。
+            if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_SEND_NOSTOP_BUSY)
+            {
+                CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_SEND_NOSTOP;
+            }
+            //
+            // If completed message was reading EEPROM data, reset msg to
+            // inactive state and read data from FIFO.
+            //
+            //如果当前消息状态是I2C_MSGSTAT_READ_BUSY（正在读取），则将其重置为非活动状态，
+            //并从FIFO中读取数据。
+            else if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_READ_BUSY)//读完成
+            {
+                CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_INACTIVE;
+
+                for(i=0; i < I2cMsgIn1.NumOfBytes; i++)
+                {
+                    CurrentMsgPtr->MsgBuffer[i] = I2cbRegs.I2CDRR.all;
+                }
+
+               // COM_flag=3;//读完成
+                I2cbRegs.I2CFFRX.bit.RXFFRST = 0; //复位 RXFIFO
+                I2cbRegs.I2CFFRX.bit.RXFFRST = 1;    // Enable RXFIFO, clear RXFFINT
+
+            }
+        }
+    }
+
+    //
+    // Interrupt source = Register Access Ready
+    // This __interrupt is used to determine when the EEPROM address setup
+    // portion of the read data communication is complete. Since no stop bit is
+    // commanded, this flag tells us when the message has been sent instead of
+    // the SCD flag. If a NACK is received, clear the NACK bit and command a
+    // stop. Otherwise, move on to the read data portion of the communication.
+    //处理寄存器访问就绪中断
+    else if(IntSource == I2C_ARDY_ISRC)
+    {
+        if(I2cbRegs.I2CSTR.bit.NACK == 1)//如果检测到NACK,则发送停止条件并清除NACK位。
+        {
+            I2cbRegs.I2CMDR.bit.STP = 1;
+            I2cbRegs.I2CSTR.all = I2C_CLR_NACK_BIT;
+        }
+        else if(CurrentMsgPtr->MsgStatus == I2C_MSGSTAT_SEND_NOSTOP_BUSY)
+        {
+            CurrentMsgPtr->MsgStatus = I2C_MSGSTAT_RESTART;//更新为准备重启状态,以便进行数据读取
+        }
+    }
+    else
+    {
+        //处理无效中断源:
+        // Generate some error due to invalid __interrupt source
+        //
+        __asm("   ESTOP0");
+    }
+
+    //
+    // Enable future I2C (PIE Group 8) __interrupts
+    //重新启用I2C中断
+    PieCtrlRegs.PIEACK.all = PIEACK_GROUP8;
+
+   // 在中断处理程序中可以通过I2caRegs.I2CMDR.bit.IRS位清零从而复位I2CSTR状态寄存器，实现I2C模块的复位。
+}
+

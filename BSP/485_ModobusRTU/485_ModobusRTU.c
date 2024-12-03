@@ -69,11 +69,13 @@ interrupt void sciaRxFifoIsr(void)
 //
 void modbus_process_request(void)
 {
-    Uint16 function_code = rx_buffer[1];  // 获取功能码
+    Uint16 function_code= rx_buffer[1];  // 获取功能码
     Uint16 crc_received = (rx_buffer[7] << 8) + rx_buffer[6]; // 获取接收到的CRC
     Uint16 modbus_reg_addr=(rx_buffer[2] << 8) + rx_buffer[3]; // 获取接收到的寄存器地址
     Uint16 crc_cal=0;
     Uint16 data_len=0;
+    Uint16 reg_value_requst=0;
+    Uint16 Write_Value=0;
     // 计算MODBUS CRC
     Uint16 crc_calculated = modbus_calculate_crc(rx_buffer, 6);
 
@@ -89,8 +91,7 @@ void modbus_process_request(void)
 
     switch(function_code)
     {
-        Uint16 reg_value_requst=0;
-        Uint16 Write_Value;
+
         case 0x03:  // 读取保持寄存器
             tx_buffer[0] = modbus_slave_addr; // 从机地址
             tx_buffer[1] = function_code;    // 功能码
